@@ -1,3 +1,4 @@
 *.o
 01-vector-add/01-vector-add
 02-matrix-add/02-matrix-add
+03-image-blur/03-image-blur
