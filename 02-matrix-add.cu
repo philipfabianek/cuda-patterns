@@ -1,0 +1,110 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define CUDA_CHECK(err)                                                                          \
+  {                                                                                              \
+    if (err != cudaSuccess)                                                                      \
+    {                                                                                            \
+      fprintf(stderr, "CUDA Error: %s at %s:%d\n", cudaGetErrorString(err), __FILE__, __LINE__); \
+      exit(EXIT_FAILURE);                                                                        \
+    }                                                                                            \
+  }
+
+const int cols = 256;
+const int rows = 256;
+const size_t mem_size = cols * rows * sizeof(int);
+
+const dim3 threads_per_block(16, 16);
+const int blocks_x = (cols + threads_per_block.x - 1) / threads_per_block.x;
+const int blocks_y = (rows + threads_per_block.y - 1) / threads_per_block.y;
+const dim3 num_blocks(blocks_x, blocks_y);
+
+__global__ void matrix_add(int *d_A, int *d_B, int *d_C, int _rows, int _cols)
+{
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int col = blockIdx.x * blockDim.x + threadIdx.x;
+  if (row < _rows && col < _cols)
+  {
+    d_C[row * _cols + col] = d_A[row * _cols + col] + d_B[row * _cols + col];
+  }
+}
+
+int main()
+{
+  int *h_A = (int *)malloc(mem_size);
+  int *h_B = (int *)malloc(mem_size);
+  int *h_C = (int *)malloc(mem_size);
+
+  if (h_A == NULL || h_B == NULL || h_C == NULL)
+  {
+    fprintf(stderr, "Failed to allocate host matrices\n");
+    return 1;
+  }
+
+  int *d_A, *d_B, *d_C;
+  CUDA_CHECK(cudaMalloc((void **)&d_A, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_B, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_C, mem_size));
+
+  for (int row = 0; row < rows; row++)
+  {
+    for (int col = 0; col < cols; col++)
+    {
+      h_A[row * cols + col] = row;
+      h_B[row * cols + col] = row + col;
+    }
+  }
+
+  printf("Top-left 5x5 submatrix of A\n");
+
+  for (int row = 0; row < 5; row++)
+  {
+    for (int col = 0; col < 5; col++)
+    {
+      printf("%d ", h_A[row * cols + col]);
+    }
+    printf("\n");
+  }
+
+  printf("\n");
+  printf("Top-left 5x5 submatrix of B\n");
+
+  for (int row = 0; row < 5; row++)
+  {
+    for (int col = 0; col < 5; col++)
+    {
+      printf("%d ", h_B[row * cols + col]);
+    }
+    printf("\n");
+  }
+
+  CUDA_CHECK(cudaMemcpy(d_A, h_A, mem_size, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_B, h_B, mem_size, cudaMemcpyHostToDevice));
+
+  matrix_add<<<num_blocks, threads_per_block>>>(d_A, d_B, d_C, rows, cols);
+  CUDA_CHECK(cudaGetLastError());
+
+  CUDA_CHECK(cudaMemcpy(h_C, d_C, mem_size, cudaMemcpyDeviceToHost));
+
+  printf("\n");
+  printf("Top-left 5x5 submatrix of C\n");
+
+  for (int row = 0; row < 5; row++)
+  {
+    for (int col = 0; col < 5; col++)
+    {
+      printf("%d ", h_C[row * cols + col]);
+    }
+    printf("\n");
+  }
+
+  free(h_A);
+  free(h_B);
+  free(h_C);
+
+  CUDA_CHECK(cudaFree(d_A));
+  CUDA_CHECK(cudaFree(d_B));
+  CUDA_CHECK(cudaFree(d_C));
+
+  return 0;
+}
