@@ -1,6 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define CUDA_CHECK(err)                                                                          \
+  {                                                                                              \
+    if (err != cudaSuccess)                                                                      \
+    {                                                                                            \
+      fprintf(stderr, "CUDA Error: %s at %s:%d\n", cudaGetErrorString(err), __FILE__, __LINE__); \
+      exit(EXIT_FAILURE);                                                                        \
+    }                                                                                            \
+  }
+
 const int N = 1000;
 const size_t mem_size = N * sizeof(int);
 const int threads_per_block = 256;
@@ -21,10 +30,16 @@ int main()
   int *h_b = (int *)malloc(mem_size);
   int *h_c = (int *)malloc(mem_size);
 
+  if (h_a == NULL || h_b == NULL || h_c == NULL)
+  {
+    fprintf(stderr, "Failed to allocate host vectors\n");
+    return 1;
+  }
+
   int *d_a, *d_b, *d_c;
-  cudaMalloc((void **)&d_a, mem_size);
-  cudaMalloc((void **)&d_b, mem_size);
-  cudaMalloc((void **)&d_c, mem_size);
+  CUDA_CHECK(cudaMalloc((void **)&d_a, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_b, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_c, mem_size));
 
   for (int i = 0; i < N; i++)
   {
@@ -32,12 +47,13 @@ int main()
     h_b[i] = i * i;
   }
 
-  cudaMemcpy(d_a, h_a, mem_size, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_b, h_b, mem_size, cudaMemcpyHostToDevice);
+  CUDA_CHECK(cudaMemcpy(d_a, h_a, mem_size, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_b, h_b, mem_size, cudaMemcpyHostToDevice));
 
   vector_add<<<blocks, threads_per_block>>>(d_a, d_b, d_c);
+  CUDA_CHECK(cudaGetLastError());
 
-  cudaMemcpy(h_c, d_c, mem_size, cudaMemcpyDeviceToHost);
+  CUDA_CHECK(cudaMemcpy(h_c, d_c, mem_size, cudaMemcpyDeviceToHost));
 
   for (int i = 0; i < 10; i++)
   {
@@ -48,9 +64,9 @@ int main()
   free(h_b);
   free(h_c);
 
-  cudaFree(d_a);
-  cudaFree(d_b);
-  cudaFree(d_c);
+  CUDA_CHECK(cudaFree(d_a));
+  CUDA_CHECK(cudaFree(d_b));
+  CUDA_CHECK(cudaFree(d_c));
 
   return 0;
 }
