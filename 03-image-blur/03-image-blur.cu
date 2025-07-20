@@ -18,16 +18,14 @@
 
 const int blur_radius = 7;
 
-__global__ void blur_kernel(unsigned char *d_input_image, unsigned char *d_output_image, int width, int height)
+__global__ void blur_kernel(uchar3 *d_input_image, uchar3 *d_output_image, int width, int height)
 {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (col < width && row < height)
   {
-    int r_sum = 0;
-    int g_sum = 0;
-    int b_sum = 0;
+    float3 sum = {0.0f, 0.0f, 0.0f};
     int count = 0;
 
     for (int dx = -blur_radius; dx <= blur_radius; dx++)
@@ -41,19 +39,19 @@ __global__ void blur_kernel(unsigned char *d_input_image, unsigned char *d_outpu
         if (-1 < neighbor_col && neighbor_col < width && -1 < neighbor_row && neighbor_row < height)
         {
           count += 1;
-          int idx = (neighbor_row * width + neighbor_col) * 3;
-          r_sum += d_input_image[idx];
-          g_sum += d_input_image[idx + 1];
-          b_sum += d_input_image[idx + 2];
+
+          int neighbor_idx = neighbor_row * width + neighbor_col;
+          uchar3 neighbor_pixel = d_input_image[neighbor_idx];
+
+          sum.x += neighbor_pixel.x;
+          sum.y += neighbor_pixel.y;
+          sum.z += neighbor_pixel.z;
         }
       }
     }
 
-    int idx = (row * width + col) * 3;
-
-    d_output_image[idx] = r_sum / count;
-    d_output_image[idx + 1] = g_sum / count;
-    d_output_image[idx + 2] = b_sum / count;
+    int output_idx = row * width + col;
+    d_output_image[output_idx] = make_uchar3(sum.x / count, sum.y / count, sum.z / count);
   }
 }
 
@@ -101,7 +99,7 @@ int main(int argc, char *argv[])
   const int blocks_x = (width + threads_per_block.x - 1) / threads_per_block.x;
   const int blocks_y = (height + threads_per_block.y - 1) / threads_per_block.y;
   const dim3 num_blocks(blocks_x, blocks_y);
-  blur_kernel<<<num_blocks, threads_per_block>>>(d_input_image, d_output_image, width, height);
+  blur_kernel<<<num_blocks, threads_per_block>>>((uchar3 *)d_input_image, (uchar3 *)d_output_image, width, height);
   CUDA_CHECK(cudaGetLastError());
 
   CUDA_CHECK(cudaMemcpy(h_output_image, d_output_image, mem_size, cudaMemcpyDeviceToHost));
