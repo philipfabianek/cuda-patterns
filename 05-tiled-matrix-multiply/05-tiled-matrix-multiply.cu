@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <random>
+#include <chrono>
 
 #define CUDA_CHECK(err)                                                                          \
   {                                                                                              \
@@ -11,6 +13,7 @@
   }
 
 #define TILE_WIDTH 16
+#define SAMPLES_TO_CHECK 10000
 
 __global__ void tiled_matrix_multiply(float *d_A, float *d_B, float *d_C, int A_rows, int A_cols, int B_rows, int B_cols)
 {
@@ -64,11 +67,47 @@ __global__ void tiled_matrix_multiply(float *d_A, float *d_B, float *d_C, int A_
   }
 }
 
+int verify_matrix_multiplication(float *h_A, float *h_B, float *h_C, int A_rows, int A_cols, int B_rows, int B_cols)
+{
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  std::default_random_engine generator(seed);
+
+  std::uniform_int_distribution<> row_dist(0, A_rows - 1);
+  std::uniform_int_distribution<> col_dist(0, B_cols - 1);
+
+  for (int s = 0; s < SAMPLES_TO_CHECK; s++)
+  {
+    int i = row_dist(generator);
+    int j = col_dist(generator);
+
+    float target_value = h_C[i * B_cols + j];
+    float expected_value = 0.0f;
+
+    for (int k = 0; k < A_cols; k++)
+    {
+      expected_value += h_A[i * A_cols + k] * h_B[k * B_cols + j];
+    }
+
+    if (fabs(target_value - expected_value) > 1e-5)
+    {
+      printf("Mismatch (%d, %d): expected %f, got %f\n", i, j, expected_value, target_value);
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 int main()
 {
-  // Define matrix A
-  int A_rows = 10000;
-  int A_cols = 20000;
+  // Create random number generator and random distribution
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  std::default_random_engine generator(seed);
+  std::uniform_real_distribution<float> distribution(-0.5f, 0.5f);
+
+  // Define matrix A with values from a random distribution
+  int A_rows = 3000;
+  int A_cols = 2000;
   size_t A_memsize = A_rows * A_cols * sizeof(float);
   float *h_A = (float *)malloc(A_memsize);
 
@@ -76,13 +115,13 @@ int main()
   {
     for (int j = 0; j < A_cols; j++)
     {
-      h_A[i * A_cols + j] = 2.0f;
+      h_A[i * A_cols + j] = distribution(generator);
     }
   }
 
-  // Define matrix B
-  int B_rows = 20000;
-  int B_cols = 10000;
+  // Define matrix B values from a random distribution
+  int B_rows = 2000;
+  int B_cols = 3000;
   size_t B_memsize = B_rows * B_cols * sizeof(float);
   float *h_B = (float *)malloc(B_memsize);
 
@@ -90,7 +129,7 @@ int main()
   {
     for (int j = 0; j < B_cols; j++)
     {
-      h_B[i * B_cols + j] = 3.0f;
+      h_B[i * B_cols + j] = distribution(generator);
     }
   }
 
@@ -138,20 +177,12 @@ int main()
   // Move data from device to host
   CUDA_CHECK(cudaMemcpy(h_C, d_C, C_memsize, cudaMemcpyDeviceToHost));
 
-  // Check C[1, 2]
-  printf("C[1, 2]: ");
-  printf("%f\n", h_C[C_cols + 2]);
-
-  // Compute the correct value for C[1, 2]
-  float correct_sum = 0;
-  for (int k = 0; k < A_cols; k++)
+  // Check values
+  if (verify_matrix_multiplication(h_A, h_B, h_C, A_rows, A_cols, B_rows, B_cols) != 0)
   {
-    correct_sum += h_A[A_cols + k] * h_B[k * B_cols + 2];
+    return 1;
   }
-
-  // Print the correct value
-  printf("Correct value: ");
-  printf("%f\n", correct_sum);
+  printf("All (sampled) values match\n");
 
   // Free memory and destroy events
   free(h_A);
