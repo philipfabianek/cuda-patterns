@@ -8,3 +8,4 @@
 06-tiled-matrix-multiply-coarsened/06-tiled-matrix-multiply-coarsened
 07-naive-convolution/07-naive-convolution
 08-tiled-convolution/08-tiled-convolution
+09-tiled-convolution-hybrid-cache/09-tiled-convolution-hybrid-cache
