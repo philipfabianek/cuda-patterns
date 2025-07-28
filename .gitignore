@@ -10,3 +10,4 @@
 08-tiled-convolution/08-tiled-convolution
 09-tiled-convolution-hybrid-cache/09-tiled-convolution-hybrid-cache
 10-naive-stencil-sweep/10-naive-stencil-sweep
+11-tiled-stencil-sweep/11-tiled-stencil-sweep
