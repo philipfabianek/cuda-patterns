@@ -1,4 +1,5 @@
 *.o
+*.ncu-rep
 01-vector-add/01-vector-add
 02-matrix-add/02-matrix-add
 03-image-blur/03-image-blur
@@ -6,3 +7,4 @@
 05-tiled-matrix-multiply/05-tiled-matrix-multiply
 06-tiled-matrix-multiply-coarsened/06-tiled-matrix-multiply-coarsened
 07-naive-convolution/07-naive-convolution
+08-tiled-convolution/08-tiled-convolution
