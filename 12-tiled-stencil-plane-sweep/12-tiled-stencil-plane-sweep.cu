@@ -28,6 +28,11 @@ __constant__ float d_c[7] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
  * - The threads compute elements along the z axis.
  * - Since the stencil radius is 1, it is sufficient to keep in memory values corresponding
  *   to 3 xy planes (previous, current, and next).
+ * - Shared memory is used only for the current plane since it is not beneficial
+ *   to use it for the previous and next planes because only a single value is
+ *   read from them for every thread.
+ * - A given thread only reads values from previous and next xy planes along the z axis
+ *   so it is ideal to store them in registers.
  * - Boundary elements are ignored in this case.
  */
 __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
@@ -36,17 +41,18 @@ __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
   int y = blockIdx.y * OUTPUT_TILE_SIZE + threadIdx.y - 1;
   int initial_z = blockIdx.z * OUTPUT_TILE_SIZE;
 
-  // Keep values corresponding to the previous, current,
-  // and next xy planes in shared memory
-  __shared__ float prev[INPUT_TILE_SIZE][INPUT_TILE_SIZE];
+  // Keep values corresponding to the current xy plane in shared memory
   __shared__ float curr[INPUT_TILE_SIZE][INPUT_TILE_SIZE];
-  __shared__ float next[INPUT_TILE_SIZE][INPUT_TILE_SIZE];
+
+  // Keep the previous and next values along the z axis in registers
+  float prev;
+  float next;
 
   if (x >= 0 && x < N &&
       y >= 0 && y < N &&
       initial_z - 1 >= 0 && initial_z - 1 < N)
   {
-    prev[threadIdx.y][threadIdx.x] = d_A[(initial_z - 1) * N * N + y * N + x];
+    prev = d_A[(initial_z - 1) * N * N + y * N + x];
   }
 
   if (x >= 0 && x < N &&
@@ -63,7 +69,7 @@ __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
         y >= 0 && y < N &&
         z < N)
     {
-      next[threadIdx.y][threadIdx.x] = d_A[z * N * N + y * N + x];
+      next = d_A[z * N * N + y * N + x];
     }
 
     __syncthreads();
@@ -83,8 +89,8 @@ __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
       {
         // Approximate inner values using a 7-point stencil
         float sum = d_c[0] * curr[threadIdx.y][threadIdx.x] +
-                    d_c[1] * prev[threadIdx.y][threadIdx.x] +
-                    d_c[2] * next[threadIdx.y][threadIdx.x] +
+                    d_c[1] * prev +
+                    d_c[2] * next +
                     d_c[3] * curr[threadIdx.y - 1][threadIdx.x] +
                     d_c[4] * curr[threadIdx.y + 1][threadIdx.x] +
                     d_c[5] * curr[threadIdx.y][threadIdx.x - 1] +
@@ -96,8 +102,8 @@ __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
     __syncthreads();
 
     // Shift the shared memory buffers for the next iteration
-    prev[threadIdx.y][threadIdx.x] = curr[threadIdx.y][threadIdx.x];
-    curr[threadIdx.y][threadIdx.x] = next[threadIdx.y][threadIdx.x];
+    prev = curr[threadIdx.y][threadIdx.x];
+    curr[threadIdx.y][threadIdx.x] = next;
   }
 }
 
