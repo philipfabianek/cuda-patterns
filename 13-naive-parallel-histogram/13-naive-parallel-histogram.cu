@@ -65,12 +65,6 @@ int main()
   size_t input_memsize = N * sizeof(char);
   char *h_input_string = (char *)malloc(input_memsize);
 
-  // Use repeating characters for simplicity
-  for (int i = 0; i < N; i++)
-  {
-    h_input_string[i] = INITIAL_CHAR + (i % NUM_UNIQUE_CHARS);
-  }
-
   // Make 90% characters the same to make the performance
   // roughly 3-4 times worse, use all characters for the last 10%
   for (int i = 0; i < N; i++)
