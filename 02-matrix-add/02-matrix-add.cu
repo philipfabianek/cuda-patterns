@@ -10,14 +10,14 @@
     }                                                                                            \
   }
 
-const int cols = 256;
-const int rows = 256;
-const size_t mem_size = cols * rows * sizeof(int);
+constexpr int cols = 256;
+constexpr int rows = 256;
+constexpr size_t mem_size = cols * rows * sizeof(int);
 
-const dim3 threads_per_block(16, 16);
-const int blocks_x = (cols + threads_per_block.x - 1) / threads_per_block.x;
-const int blocks_y = (rows + threads_per_block.y - 1) / threads_per_block.y;
-const dim3 num_blocks(blocks_x, blocks_y);
+constexpr dim3 threads_per_block(16, 16);
+constexpr int blocks_x = (cols + threads_per_block.x - 1) / threads_per_block.x;
+constexpr int blocks_y = (rows + threads_per_block.y - 1) / threads_per_block.y;
+constexpr dim3 num_blocks(blocks_x, blocks_y);
 
 __global__ void matrix_add(int *d_A, int *d_B, int *d_C, int _rows, int _cols)
 {

@@ -10,10 +10,10 @@
     }                                                                                            \
   }
 
-const int N = 1000;
-const size_t mem_size = N * sizeof(int);
-const int threads_per_block = 256;
-const int blocks = (N + threads_per_block - 1) / threads_per_block;
+constexpr int N = 1000;
+constexpr size_t mem_size = N * sizeof(int);
+constexpr int threads_per_block = 256;
+constexpr int blocks = (N + threads_per_block - 1) / threads_per_block;
 
 __global__ void vector_add(int *d_a, int *d_b, int *d_c)
 {

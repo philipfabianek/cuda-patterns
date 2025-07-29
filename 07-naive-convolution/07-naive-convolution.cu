@@ -12,7 +12,7 @@
     }                                                                                            \
   }
 
-#define SAMPLES_TO_CHECK 10000
+constexpr int samples_to_check = 10000;
 
 __global__ void naive_convolution(float *d_A, float *d_B, float *d_F, int matrix_rows, int matrix_cols, int filter_rows, int filter_cols, int filter_radius_y, int filter_radius_x)
 {
@@ -46,7 +46,7 @@ int verify_convolution(float *h_A, float *h_B, float *h_F, int matrix_rows, int 
   std::uniform_int_distribution<> row_dist(0, matrix_rows - 1);
   std::uniform_int_distribution<> col_dist(0, matrix_cols - 1);
 
-  for (int s = 0; s < SAMPLES_TO_CHECK; s++)
+  for (int s = 0; s < samples_to_check; s++)
   {
     int i = row_dist(generator);
     int j = col_dist(generator);

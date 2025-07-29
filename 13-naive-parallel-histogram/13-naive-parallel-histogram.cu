@@ -12,12 +12,12 @@
     }                                                                                            \
   }
 
-constexpr char INITIAL_CHAR = 'A';
 constexpr int N = 1000 * 1000 * 1000;
-constexpr int NUM_BINS = 64;
+constexpr char initial_char = 'A';
+constexpr int num_bins = 64;
 // Cannot be too large due because of signed char
 // ranging from -128 to 127 (A is 65)
-constexpr int NUM_UNIQUE_CHARS = 50;
+constexpr int num_unique_chars = 50;
 
 /*
  * Computes a histogram of character frequencies.
@@ -31,23 +31,23 @@ __global__ void histogram_kernel(const char *d_input_string, unsigned int *d_his
   if (idx < N)
   {
     char current_char = d_input_string[idx];
-    unsigned int bin_index = (current_char - INITIAL_CHAR) * NUM_BINS / NUM_UNIQUE_CHARS;
+    unsigned int bin_index = (current_char - initial_char) * num_bins / num_unique_chars;
     atomicAdd(&d_histogram[bin_index], 1);
   }
 }
 
 int verify_histogram(const char *h_input_string, const unsigned int *h_histogram)
 {
-  unsigned int target_histogram[NUM_BINS] = {0};
+  unsigned int target_histogram[num_bins] = {0};
 
   for (int i = 0; i < N; i++)
   {
     char current_char = h_input_string[i];
-    unsigned int bin_index = (current_char - INITIAL_CHAR) * NUM_BINS / NUM_UNIQUE_CHARS;
+    unsigned int bin_index = (current_char - initial_char) * num_bins / num_unique_chars;
     target_histogram[bin_index]++;
   }
 
-  for (int i = 0; i < NUM_BINS; i++)
+  for (int i = 0; i < num_bins; i++)
   {
     if (target_histogram[i] != h_histogram[i])
     {
@@ -71,16 +71,16 @@ int main()
   {
     if (i < 0.9 * N)
     {
-      h_input_string[i] = INITIAL_CHAR;
+      h_input_string[i] = initial_char;
     }
     else
     {
-      h_input_string[i] = INITIAL_CHAR + (i % (NUM_UNIQUE_CHARS - 1)) + 1;
+      h_input_string[i] = initial_char + (i % (num_unique_chars - 1)) + 1;
     }
   }
 
   // Allocate memory for the host histogram result
-  size_t histogram_memsize = NUM_BINS * sizeof(unsigned int);
+  size_t histogram_memsize = num_bins * sizeof(unsigned int);
   unsigned int *h_histogram = (unsigned int *)malloc(histogram_memsize);
 
   // Prepare device variables

@@ -12,21 +12,21 @@
     }                                                                                            \
   }
 
-#define TILE_WIDTH 16
-#define COARSE_FACTOR 4
-#define SAMPLES_TO_CHECK 10000
+constexpr int tile_width = 16;
+constexpr int coarse_factor = 4;
+constexpr int samples_to_check = 10000;
 
 __global__ void tiled_matrix_multiply_coarsened(float *d_A, float *d_B, float *d_C, int A_rows, int A_cols, int B_rows, int B_cols)
 {
-  int col = blockIdx.x * blockDim.x * COARSE_FACTOR + threadIdx.x;
+  int col = blockIdx.x * blockDim.x * coarse_factor + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
-  int num_tiles = (A_cols + TILE_WIDTH - 1) / TILE_WIDTH;
-  __shared__ float A_tile[TILE_WIDTH][TILE_WIDTH];
-  __shared__ float B_tile[TILE_WIDTH][TILE_WIDTH];
+  int num_tiles = (A_cols + tile_width - 1) / tile_width;
+  __shared__ float A_tile[tile_width][tile_width];
+  __shared__ float B_tile[tile_width][tile_width];
 
-  float sum[COARSE_FACTOR];
-  for (int j = 0; j < COARSE_FACTOR; j++)
+  float sum[coarse_factor];
+  for (int j = 0; j < coarse_factor; j++)
   {
     sum[j] = 0.0f;
   }
@@ -34,7 +34,7 @@ __global__ void tiled_matrix_multiply_coarsened(float *d_A, float *d_B, float *d
   for (int i = 0; i < num_tiles; i++)
   {
     int A_read_row = row;
-    int A_read_col = TILE_WIDTH * i + threadIdx.x;
+    int A_read_col = tile_width * i + threadIdx.x;
 
     if (A_read_row < A_rows && A_read_col < A_cols)
     {
@@ -45,10 +45,10 @@ __global__ void tiled_matrix_multiply_coarsened(float *d_A, float *d_B, float *d
       A_tile[threadIdx.y][threadIdx.x] = 0;
     }
 
-    for (int j = 0; j < COARSE_FACTOR; j++)
+    for (int j = 0; j < coarse_factor; j++)
     {
-      int B_read_row = TILE_WIDTH * i + threadIdx.y;
-      int B_read_col = col + j * TILE_WIDTH;
+      int B_read_row = tile_width * i + threadIdx.y;
+      int B_read_col = col + j * tile_width;
 
       if (B_read_row < B_rows && B_read_col < B_cols)
       {
@@ -61,7 +61,7 @@ __global__ void tiled_matrix_multiply_coarsened(float *d_A, float *d_B, float *d
 
       __syncthreads();
 
-      for (int k = 0; k < TILE_WIDTH; k++)
+      for (int k = 0; k < tile_width; k++)
       {
         sum[j] += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
       }
@@ -70,10 +70,10 @@ __global__ void tiled_matrix_multiply_coarsened(float *d_A, float *d_B, float *d
     }
   }
 
-  for (int j = 0; j < COARSE_FACTOR; j++)
+  for (int j = 0; j < coarse_factor; j++)
   {
     int write_row = row;
-    int write_col = col + j * TILE_WIDTH;
+    int write_col = col + j * tile_width;
 
     if (write_row < A_rows && write_col < B_cols)
     {
@@ -90,7 +90,7 @@ int verify_matrix_multiplication(float *h_A, float *h_B, float *h_C, int A_rows,
   std::uniform_int_distribution<> row_dist(0, A_rows - 1);
   std::uniform_int_distribution<> col_dist(0, B_cols - 1);
 
-  for (int s = 0; s < SAMPLES_TO_CHECK; s++)
+  for (int s = 0; s < samples_to_check; s++)
   {
     int i = row_dist(generator);
     int j = col_dist(generator);
@@ -171,8 +171,8 @@ int main()
   CUDA_CHECK(cudaEventRecord(start));
 
   // Compute the number of blocks needed
-  dim3 threads_per_block(TILE_WIDTH, TILE_WIDTH);
-  int blocks_x = (C_cols + (threads_per_block.x * COARSE_FACTOR) - 1) / (threads_per_block.x * COARSE_FACTOR);
+  dim3 threads_per_block(tile_width, tile_width);
+  int blocks_x = (C_cols + (threads_per_block.x * coarse_factor) - 1) / (threads_per_block.x * coarse_factor);
   int blocks_y = (C_rows + threads_per_block.y - 1) / threads_per_block.y;
   dim3 num_blocks(blocks_x, blocks_y);
 

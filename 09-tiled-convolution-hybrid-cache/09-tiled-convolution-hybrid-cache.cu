@@ -12,17 +12,17 @@
     }                                                                                            \
   }
 
-#define MATRIX_ROWS 30000
-#define MATRIX_COLS 20000
-#define RANDOM_INITIALIZATION false
-#define FILTER_RADIUS_X 2
-#define FILTER_RADIUS_Y 2
-#define FILTER_ROWS (2 * FILTER_RADIUS_Y + 1)
-#define FILTER_COLS (2 * FILTER_RADIUS_X + 1)
-#define TILE_SIZE 16
-#define SAMPLES_TO_CHECK 10000
+constexpr int matrix_rows = 30000;
+constexpr int matrix_cols = 20000;
+constexpr bool random_initialization = false;
+constexpr int filter_radius_x = 2;
+constexpr int filter_radius_y = 2;
+constexpr int filter_rows = (2 * filter_radius_y + 1);
+constexpr int filter_cols = (2 * filter_radius_x + 1);
+constexpr int tile_size = 16;
+constexpr int samples_to_check = 10000;
 
-__constant__ float d_F[2 * FILTER_RADIUS_Y + 1][2 * FILTER_RADIUS_X + 1];
+__constant__ float d_F[2 * filter_radius_y + 1][2 * filter_radius_x + 1];
 
 /*
  * Performs a 2D convolution using a hybrid cache approach.
@@ -34,12 +34,12 @@ __constant__ float d_F[2 * FILTER_RADIUS_Y + 1][2 * FILTER_RADIUS_X + 1];
  *   but according to my tests it performs significantly worse than the previous tiled approach
  *   from 08-tiled-convolution.
  */
-__global__ void tiled_convolution(float *d_A, float *d_B, int matrix_rows, int matrix_cols)
+__global__ void tiled_convolution(float *d_A, float *d_B)
 {
   signed int col = blockIdx.x * blockDim.x + threadIdx.x;
   signed int row = blockIdx.y * blockDim.y + threadIdx.y;
 
-  __shared__ float input_tile[TILE_SIZE][TILE_SIZE];
+  __shared__ float input_tile[tile_size][tile_size];
 
   // Load input tile into shared memory using all threads in the block
   if (row < matrix_rows && col < matrix_cols)
@@ -58,17 +58,17 @@ __global__ void tiled_convolution(float *d_A, float *d_B, int matrix_rows, int m
   {
     float sum = 0.0f;
 
-    for (int i = -FILTER_RADIUS_Y; i < FILTER_RADIUS_Y + 1; i++)
+    for (int i = -filter_radius_y; i < filter_radius_y + 1; i++)
     {
-      for (int j = -FILTER_RADIUS_X; j < FILTER_RADIUS_X + 1; j++)
+      for (int j = -filter_radius_x; j < filter_radius_x + 1; j++)
       {
         int input_x = threadIdx.x + j;
         int input_y = threadIdx.y + i;
 
-        if (input_x >= 0 && input_x < TILE_SIZE && input_y >= 0 && input_y < TILE_SIZE)
+        if (input_x >= 0 && input_x < tile_size && input_y >= 0 && input_y < tile_size)
         {
           // Use shared memory
-          sum += d_F[FILTER_RADIUS_Y + i][FILTER_RADIUS_X + j] * input_tile[input_y][input_x];
+          sum += d_F[filter_radius_y + i][filter_radius_x + j] * input_tile[input_y][input_x];
         }
         else
         {
@@ -76,7 +76,7 @@ __global__ void tiled_convolution(float *d_A, float *d_B, int matrix_rows, int m
           // here we need to check bounds again
           if (row + i >= 0 && row + i < matrix_rows && col + j >= 0 && col + j < matrix_cols)
           {
-            sum += d_F[FILTER_RADIUS_Y + i][FILTER_RADIUS_X + j] * d_A[(row + i) * matrix_cols + (col + j)];
+            sum += d_F[filter_radius_y + i][filter_radius_x + j] * d_A[(row + i) * matrix_cols + (col + j)];
           }
         }
       }
@@ -86,7 +86,7 @@ __global__ void tiled_convolution(float *d_A, float *d_B, int matrix_rows, int m
   }
 }
 
-int verify_convolution(float *h_A, float *h_B, float *h_F, int matrix_rows, int matrix_cols)
+int verify_convolution(float *h_A, float *h_B, float *h_F)
 {
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator(seed);
@@ -94,7 +94,7 @@ int verify_convolution(float *h_A, float *h_B, float *h_F, int matrix_rows, int 
   std::uniform_int_distribution<> row_dist(0, matrix_rows - 1);
   std::uniform_int_distribution<> col_dist(0, matrix_cols - 1);
 
-  for (int s = 0; s < SAMPLES_TO_CHECK; s++)
+  for (int s = 0; s < samples_to_check; s++)
   {
     int i = row_dist(generator);
     int j = col_dist(generator);
@@ -102,13 +102,13 @@ int verify_convolution(float *h_A, float *h_B, float *h_F, int matrix_rows, int 
     float target_value = h_B[i * matrix_cols + j];
     float expected_value = 0.0f;
 
-    for (int k = -FILTER_RADIUS_Y; k < FILTER_RADIUS_Y + 1; k++)
+    for (int k = -filter_radius_y; k < filter_radius_y + 1; k++)
     {
-      for (int l = -FILTER_RADIUS_X; l < FILTER_RADIUS_X + 1; l++)
+      for (int l = -filter_radius_x; l < filter_radius_x + 1; l++)
       {
         if (i + k >= 0 && i + k < matrix_rows && j + l >= 0 && j + l < matrix_cols)
         {
-          expected_value += h_A[(i + k) * matrix_cols + (j + l)] * h_F[(FILTER_RADIUS_Y + k) * FILTER_COLS + (FILTER_RADIUS_X + l)];
+          expected_value += h_A[(i + k) * matrix_cols + (j + l)] * h_F[(filter_radius_y + k) * filter_cols + (filter_radius_x + l)];
         }
       }
     }
@@ -131,8 +131,6 @@ int main()
   std::uniform_real_distribution<float> distribution(-0.5f, 0.5f);
 
   // Define matrix A with values from a random distribution
-  int matrix_rows = MATRIX_ROWS;
-  int matrix_cols = MATRIX_COLS;
   size_t A_memsize = matrix_rows * matrix_cols * sizeof(float);
   float *h_A = (float *)malloc(A_memsize);
 
@@ -140,7 +138,7 @@ int main()
   {
     for (int j = 0; j < matrix_cols; j++)
     {
-      if (RANDOM_INITIALIZATION)
+      if (random_initialization)
       {
         h_A[i * matrix_cols + j] = distribution(generator);
       }
@@ -152,18 +150,18 @@ int main()
   }
 
   // Define filter F with values from a random distribution
-  size_t F_memsize = FILTER_ROWS * FILTER_COLS * sizeof(float);
+  size_t F_memsize = filter_rows * filter_cols * sizeof(float);
   float *h_F = (float *)malloc(F_memsize);
 
-  for (int i = 0; i < FILTER_ROWS; i++)
+  for (int i = 0; i < filter_rows; i++)
   {
-    for (int j = 0; j < FILTER_COLS; j++)
+    for (int j = 0; j < filter_cols; j++)
     {
-      if (RANDOM_INITIALIZATION)
-        h_F[i * FILTER_COLS + j] = distribution(generator);
+      if (random_initialization)
+        h_F[i * filter_cols + j] = distribution(generator);
       else
       {
-        h_F[i * FILTER_COLS + j] = 1.0f;
+        h_F[i * filter_cols + j] = 1.0f;
       }
     }
   }
@@ -192,11 +190,11 @@ int main()
   CUDA_CHECK(cudaEventRecord(start));
 
   // Perform convolution on GPU
-  dim3 threads_per_block(TILE_SIZE, TILE_SIZE);
-  int blocks_x = (matrix_cols + TILE_SIZE - 1) / TILE_SIZE;
-  int blocks_y = (matrix_rows + TILE_SIZE - 1) / TILE_SIZE;
+  dim3 threads_per_block(tile_size, tile_size);
+  int blocks_x = (matrix_cols + tile_size - 1) / tile_size;
+  int blocks_y = (matrix_rows + tile_size - 1) / tile_size;
   dim3 num_blocks(blocks_x, blocks_y);
-  tiled_convolution<<<num_blocks, threads_per_block>>>(d_A, d_B, matrix_rows, matrix_cols);
+  tiled_convolution<<<num_blocks, threads_per_block>>>(d_A, d_B);
   CUDA_CHECK(cudaGetLastError());
 
   // Record the end time and synchronize
@@ -212,7 +210,7 @@ int main()
   CUDA_CHECK(cudaMemcpy(h_B, d_B, B_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
-  if (verify_convolution(h_A, h_B, h_F, matrix_rows, matrix_cols) != 0)
+  if (verify_convolution(h_A, h_B, h_F) != 0)
   {
     return 1;
   }

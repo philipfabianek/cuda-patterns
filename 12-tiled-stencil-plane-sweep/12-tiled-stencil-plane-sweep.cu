@@ -12,11 +12,11 @@
     }                                                                                            \
   }
 
-#define N 500
-#define RANDOM_INITIALIZATION false
-#define INPUT_TILE_SIZE 8
-#define OUTPUT_TILE_SIZE (INPUT_TILE_SIZE - 2)
-#define SAMPLES_TO_CHECK 100000
+constexpr int N = 500;
+constexpr bool random_initialization = false;
+constexpr int input_tile_size = 8;
+constexpr int output_tile_size = (input_tile_size - 2);
+constexpr int samples_to_check = 100000;
 
 // Coefficients for the 7-point stencil (one for host and one for device)
 const float h_c[7] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
@@ -37,12 +37,12 @@ __constant__ float d_c[7] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
  */
 __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
 {
-  int x = blockIdx.x * OUTPUT_TILE_SIZE + threadIdx.x - 1;
-  int y = blockIdx.y * OUTPUT_TILE_SIZE + threadIdx.y - 1;
-  int initial_z = blockIdx.z * OUTPUT_TILE_SIZE;
+  int x = blockIdx.x * output_tile_size + threadIdx.x - 1;
+  int y = blockIdx.y * output_tile_size + threadIdx.y - 1;
+  int initial_z = blockIdx.z * output_tile_size;
 
   // Keep values corresponding to the current xy plane in shared memory
-  __shared__ float curr[INPUT_TILE_SIZE][INPUT_TILE_SIZE];
+  __shared__ float curr[input_tile_size][input_tile_size];
 
   // Keep the previous and next values along the z axis in registers
   float prev;
@@ -63,7 +63,7 @@ __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
   }
 
   // Iterate over the xy planes in the z direction
-  for (int z = initial_z + 1; z <= initial_z + OUTPUT_TILE_SIZE; z++)
+  for (int z = initial_z + 1; z <= initial_z + output_tile_size; z++)
   {
     if (x >= 0 && x < N &&
         y >= 0 && y < N &&
@@ -80,8 +80,8 @@ __global__ void tiled_stencil_plane_sweep_kernel(float *d_A, float *d_B)
 
     // Check whether the thread should be enabled for the current output tile
     // (threads on the edges are disabled because input tiles are bigger than output tiles)
-    if (output_tile_x >= 0 && output_tile_x < OUTPUT_TILE_SIZE &&
-        output_tile_y >= 0 && output_tile_y < OUTPUT_TILE_SIZE)
+    if (output_tile_x >= 0 && output_tile_x < output_tile_size &&
+        output_tile_y >= 0 && output_tile_y < output_tile_size)
     {
       if (x >= 0 && x < N &&
           y >= 0 && y < N &&
@@ -116,7 +116,7 @@ int verify_stencil_sweep(float *h_A, float *h_B)
   std::uniform_int_distribution<> y_dist(0, N - 1);
   std::uniform_int_distribution<> z_dist(0, N - 1);
 
-  for (int s = 0; s < SAMPLES_TO_CHECK; s++)
+  for (int s = 0; s < samples_to_check; s++)
   {
     int i = x_dist(generator);
     int j = y_dist(generator);
@@ -163,7 +163,7 @@ int main()
     {
       for (int k = 0; k < N; k++)
       {
-        if (RANDOM_INITIALIZATION)
+        if (random_initialization)
         {
           h_A[i * N * N + j * N + k] = distribution(generator);
         }
@@ -195,10 +195,10 @@ int main()
   CUDA_CHECK(cudaEventRecord(start));
 
   // Perform stencil sweep on GPU
-  dim3 threads_per_block(INPUT_TILE_SIZE, INPUT_TILE_SIZE, 1);
-  int blocks_x = (N + OUTPUT_TILE_SIZE - 1) / OUTPUT_TILE_SIZE;
-  int blocks_y = (N + OUTPUT_TILE_SIZE - 1) / OUTPUT_TILE_SIZE;
-  int blocks_z = (N + OUTPUT_TILE_SIZE - 1) / OUTPUT_TILE_SIZE;
+  dim3 threads_per_block(input_tile_size, input_tile_size, 1);
+  int blocks_x = (N + output_tile_size - 1) / output_tile_size;
+  int blocks_y = (N + output_tile_size - 1) / output_tile_size;
+  int blocks_z = (N + output_tile_size - 1) / output_tile_size;
   dim3 num_blocks(blocks_x, blocks_y, blocks_z);
   tiled_stencil_plane_sweep_kernel<<<num_blocks, threads_per_block>>>(d_A, d_B);
   CUDA_CHECK(cudaGetLastError());

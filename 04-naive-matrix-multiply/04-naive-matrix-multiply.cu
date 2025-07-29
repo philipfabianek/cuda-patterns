@@ -12,7 +12,7 @@
     }                                                                                            \
   }
 
-#define SAMPLES_TO_CHECK 10000
+constexpr int samples_to_check = 10000;
 
 __global__ void naive_matrix_multiply(float *d_A, float *d_B, float *d_C, int A_rows, int A_cols, int B_rows, int B_cols)
 {
@@ -38,7 +38,7 @@ int verify_matrix_multiplication(float *h_A, float *h_B, float *h_C, int A_rows,
   std::uniform_int_distribution<> row_dist(0, A_rows - 1);
   std::uniform_int_distribution<> col_dist(0, B_cols - 1);
 
-  for (int s = 0; s < SAMPLES_TO_CHECK; s++)
+  for (int s = 0; s < samples_to_check; s++)
   {
     int i = row_dist(generator);
     int j = col_dist(generator);

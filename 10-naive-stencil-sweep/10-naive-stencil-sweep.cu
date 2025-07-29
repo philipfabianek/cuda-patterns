@@ -12,10 +12,10 @@
     }                                                                                            \
   }
 
-#define N 500
-#define RANDOM_INITIALIZATION false
-#define BLOCK_SIZE 8
-#define SAMPLES_TO_CHECK 100000
+constexpr int N = 500;
+constexpr bool random_initialization = false;
+constexpr int block_size = 8;
+constexpr int samples_to_check = 100000;
 
 /*
  * Performs a 3D stencil sweep on a 3D tensor using a 7-point stencil.
@@ -64,7 +64,7 @@ int verify_stencil_sweep(float *h_A, float *h_B)
   std::uniform_int_distribution<> y_dist(0, N - 1);
   std::uniform_int_distribution<> z_dist(0, N - 1);
 
-  for (int s = 0; s < SAMPLES_TO_CHECK; s++)
+  for (int s = 0; s < samples_to_check; s++)
   {
     int i = x_dist(generator);
     int j = y_dist(generator);
@@ -113,7 +113,7 @@ int main()
     {
       for (int k = 0; k < N; k++)
       {
-        if (RANDOM_INITIALIZATION)
+        if (random_initialization)
         {
           h_A[i * N * N + j * N + k] = distribution(generator);
         }
@@ -145,10 +145,10 @@ int main()
   CUDA_CHECK(cudaEventRecord(start));
 
   // Perform stencil sweep on GPU
-  dim3 threads_per_block(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-  int blocks_x = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  int blocks_y = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  int blocks_z = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  dim3 threads_per_block(block_size, block_size, block_size);
+  int blocks_x = (N + block_size - 1) / block_size;
+  int blocks_y = (N + block_size - 1) / block_size;
+  int blocks_z = (N + block_size - 1) / block_size;
   dim3 num_blocks(blocks_x, blocks_y, blocks_z);
   stencil_kernel<<<num_blocks, threads_per_block>>>(d_A, d_B);
   CUDA_CHECK(cudaGetLastError());
