@@ -14,3 +14,4 @@
 12-tiled-stencil-plane-sweep/12-tiled-stencil-plane-sweep
 13-naive-parallel-histogram/13-naive-parallel-histogram
 14-parallel-histogram-privatized/14-parallel-histogram-privatized
+15-parallel-histogram-shared/15-parallel-histogram-shared
