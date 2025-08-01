@@ -54,6 +54,11 @@ __global__ void histogram_kernel(const char *d_input_string, unsigned int *d_his
   {
     int idx = blockIdx.x * blockDim.x * coarse_factor + i * blockDim.x + threadIdx.x;
 
+    // I later discovered (in the next project) that sequential access works extremely well
+    // with small <coarse_factor> values (e.g. 8 or 16) but I kept the original
+    // interleaved access for leaning purposes
+    // int idx = blockIdx.x * blockDim.x * coarse_factor + threadIdx.x * coarse_factor + i;
+
     // Compute histogram for the current block
     if (idx < N)
     {
