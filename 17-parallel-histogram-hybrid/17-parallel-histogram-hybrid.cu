@@ -29,6 +29,9 @@ constexpr int block_multiplier = 16;
  * Computes a histogram of character frequencies.
  * - Each thread processes <coarse_factor> contiguous input characters
  *   called a "chunk" before jumping to the next chunk in a grid-stride loop.
+ * - This sequential access is actually better than the interleaved access
+ *   used in the previous version, because for small <coarse_factor> values
+ *   the cache gets utilized very well.
  * - Histograms for each block are stored in shared memory
  *   before being merged into the final histogram.
  */
