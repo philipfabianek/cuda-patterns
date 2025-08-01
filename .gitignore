@@ -15,3 +15,5 @@
 13-naive-parallel-histogram/13-naive-parallel-histogram
 14-parallel-histogram-privatized/14-parallel-histogram-privatized
 15-parallel-histogram-shared/15-parallel-histogram-shared
+16-parallel-histogram-shared-coarsened/16-parallel-histogram-shared-coarsened
+17-parallel-histogram-hybrid/17-parallel-histogram-hybrid
