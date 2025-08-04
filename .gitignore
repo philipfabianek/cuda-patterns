@@ -19,3 +19,4 @@
 17-parallel-histogram-hybrid/17-parallel-histogram-hybrid
 18-parallel-reduction/18-parallel-reduction
 19-prefix-sum-single-block/19-prefix-sum-single-block
+20-prefix-sum-single-block-coarsened/20-prefix-sum-single-block-coarsened
