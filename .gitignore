@@ -18,4 +18,4 @@
 16-parallel-histogram-shared-coarsened/16-parallel-histogram-shared-coarsened
 17-parallel-histogram-hybrid/17-parallel-histogram-hybrid
 18-parallel-reduction/18-parallel-reduction
-19-naive-prefix-sum/19-naive-prefix-sum
+19-prefix-sum-single-block/19-prefix-sum-single-block
