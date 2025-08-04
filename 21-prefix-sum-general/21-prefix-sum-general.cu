@@ -213,17 +213,10 @@ int main()
   // Compute prefix sum on GPU
   unsigned int max_level = 0;
   long long max_block_size = base_block_size;
-  while (true)
+  while ((N - 1) / max_block_size >= 1)
   {
-    if ((N - 1) / max_block_size >= 1)
-    {
-      max_level += 1;
-      max_block_size *= base_block_size;
-    }
-    else
-    {
-      break;
-    }
+    max_level += 1;
+    max_block_size *= base_block_size;
   }
 
   // Compute prefix sums at increasing levels to cover the entire array,
