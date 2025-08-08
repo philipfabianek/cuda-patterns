@@ -22,3 +22,4 @@
 20-prefix-sum-single-block-coarsened/20-prefix-sum-single-block-coarsened
 21-prefix-sum-general/21-prefix-sum-general
 22-sparse-matrix-vector-coo/22-sparse-matrix-vector-coo
+23-sparse-matrix-vector-ell/23-sparse-matrix-vector-ell

@@ -22,8 +22,8 @@ constexpr int blocks_per_grid = (num_non_zeros + threads_per_block - 1) / thread
 
 /*
  * Performs Sparse Matrix-Vector multiplication (SpMV) using the coordinate (COO) format.
- * - Each thread computes the product of one non-zero element of the matrix
- * - atomicAdd is used to prevent race conditions
+ * - Each thread computes the product of one non-zero element of the matrix.
+ * - atomicAdd is used to prevent race conditions.
  */
 __global__ void spmv_coo_kernel(const float *value, const int *rowIdx, const int *colIdx,
                                 const float *x, float *y)
