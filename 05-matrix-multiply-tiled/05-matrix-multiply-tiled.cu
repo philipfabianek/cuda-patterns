@@ -12,10 +12,17 @@
     }                                                                                            \
   }
 
+constexpr bool random_initialization = false;
+constexpr int A_rows = 10000;
+constexpr int A_cols = 10000;
+constexpr int B_rows = 10000;
+constexpr int B_cols = 10000;
+constexpr int C_rows = A_rows;
+constexpr int C_cols = B_cols;
 constexpr int tile_width = 16;
 constexpr int samples_to_check = 10000;
 
-__global__ void tiled_matrix_multiply(float *d_A, float *d_B, float *d_C, int A_rows, int A_cols, int B_rows, int B_cols)
+__global__ void tiled_matrix_multiply(float *d_A, float *d_B, float *d_C)
 {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -67,7 +74,7 @@ __global__ void tiled_matrix_multiply(float *d_A, float *d_B, float *d_C, int A_
   }
 }
 
-int verify_matrix_multiplication(float *h_A, float *h_B, float *h_C, int A_rows, int A_cols, int B_rows, int B_cols)
+int verify_matrix_multiplication(float *h_A, float *h_B, float *h_C)
 {
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator(seed);
@@ -106,8 +113,6 @@ int main()
   std::uniform_real_distribution<float> distribution(-0.5f, 0.5f);
 
   // Define matrix A with values from a random distribution
-  int A_rows = 3000;
-  int A_cols = 2000;
   size_t A_memsize = A_rows * A_cols * sizeof(float);
   float *h_A = (float *)malloc(A_memsize);
 
@@ -115,13 +120,18 @@ int main()
   {
     for (int j = 0; j < A_cols; j++)
     {
-      h_A[i * A_cols + j] = distribution(generator);
+      if (random_initialization)
+      {
+        h_A[i * A_cols + j] = distribution(generator);
+      }
+      else
+      {
+        h_A[i * A_cols + j] = 1.0f;
+      }
     }
   }
 
   // Define matrix B values from a random distribution
-  int B_rows = 2000;
-  int B_cols = 3000;
   size_t B_memsize = B_rows * B_cols * sizeof(float);
   float *h_B = (float *)malloc(B_memsize);
 
@@ -129,13 +139,18 @@ int main()
   {
     for (int j = 0; j < B_cols; j++)
     {
-      h_B[i * B_cols + j] = distribution(generator);
+      if (random_initialization)
+      {
+        h_B[i * B_cols + j] = distribution(generator);
+      }
+      else
+      {
+        h_B[i * B_cols + j] = 1.0f;
+      }
     }
   }
 
   // Allocate memory for matrix C which will be the product of A and B
-  int C_rows = A_rows;
-  int C_cols = B_cols;
   size_t C_memsize = C_rows * C_cols * sizeof(float);
   float *h_C = (float *)malloc(C_memsize);
 
@@ -162,7 +177,7 @@ int main()
   dim3 num_blocks(blocks_x, blocks_y);
 
   // Execute the kernel
-  tiled_matrix_multiply<<<num_blocks, threads_per_block>>>(d_A, d_B, d_C, A_rows, A_cols, B_rows, B_cols);
+  tiled_matrix_multiply<<<num_blocks, threads_per_block>>>(d_A, d_B, d_C);
   CUDA_CHECK(cudaGetLastError());
 
   // Record the end time and synchronize
@@ -178,7 +193,7 @@ int main()
   CUDA_CHECK(cudaMemcpy(h_C, d_C, C_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
-  if (verify_matrix_multiplication(h_A, h_B, h_C, A_rows, A_cols, B_rows, B_cols) != 0)
+  if (verify_matrix_multiplication(h_A, h_B, h_C) != 0)
   {
     return 1;
   }

@@ -12,9 +12,9 @@
     }                                                                                            \
   }
 
+constexpr bool random_initialization = false;
 constexpr int matrix_rows = 30000;
 constexpr int matrix_cols = 20000;
-constexpr bool random_initialization = false;
 constexpr int filter_radius_x = 2;
 constexpr int filter_radius_y = 2;
 constexpr int filter_rows = (2 * filter_radius_y + 1);

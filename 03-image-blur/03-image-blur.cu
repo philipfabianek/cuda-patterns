@@ -16,7 +16,7 @@
     }                                                                                            \
   }
 
-constexpr int blur_radius = 7;
+constexpr int blur_radius = 135;
 
 __global__ void blur_kernel(uchar3 *d_input_image, uchar3 *d_output_image, int width, int height)
 {

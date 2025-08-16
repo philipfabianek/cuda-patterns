@@ -12,9 +12,16 @@
     }                                                                                            \
   }
 
+constexpr bool random_initialization = false;
+constexpr int matrix_rows = 30000;
+constexpr int matrix_cols = 20000;
+constexpr int filter_radius_x = 2;
+constexpr int filter_radius_y = 2;
+constexpr int filter_rows = (2 * filter_radius_y + 1);
+constexpr int filter_cols = (2 * filter_radius_x + 1);
 constexpr int samples_to_check = 10000;
 
-__global__ void naive_convolution(float *d_A, float *d_B, float *d_F, int matrix_rows, int matrix_cols, int filter_rows, int filter_cols, int filter_radius_y, int filter_radius_x)
+__global__ void naive_convolution(float *d_A, float *d_B, float *d_F)
 {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -38,7 +45,7 @@ __global__ void naive_convolution(float *d_A, float *d_B, float *d_F, int matrix
   }
 }
 
-int verify_convolution(float *h_A, float *h_B, float *h_F, int matrix_rows, int matrix_cols, int filter_rows, int filter_cols, int filter_radius_y, int filter_radius_x)
+int verify_convolution(float *h_A, float *h_B, float *h_F)
 {
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator(seed);
@@ -83,8 +90,6 @@ int main()
   std::uniform_real_distribution<float> distribution(-0.5f, 0.5f);
 
   // Define matrix A with values from a random distribution
-  int matrix_rows = 3000;
-  int matrix_cols = 2000;
   size_t A_memsize = matrix_rows * matrix_cols * sizeof(float);
   float *h_A = (float *)malloc(A_memsize);
 
@@ -92,13 +97,18 @@ int main()
   {
     for (int j = 0; j < matrix_cols; j++)
     {
-      h_A[i * matrix_cols + j] = distribution(generator);
+      if (random_initialization)
+      {
+        h_A[i * matrix_cols + j] = distribution(generator);
+      }
+      else
+      {
+        h_A[i * matrix_cols + j] = 1.0f;
+      }
     }
   }
 
   // Define filter F with values from a random distribution
-  int filter_rows = 7;
-  int filter_cols = 5;
   size_t F_memsize = filter_rows * filter_cols * sizeof(float);
   float *h_F = (float *)malloc(F_memsize);
 
@@ -106,7 +116,12 @@ int main()
   {
     for (int j = 0; j < filter_cols; j++)
     {
-      h_F[i * filter_cols + j] = distribution(generator);
+      if (random_initialization)
+        h_F[i * filter_cols + j] = distribution(generator);
+      else
+      {
+        h_F[i * filter_cols + j] = 1.0f;
+      }
     }
   }
 
@@ -137,9 +152,7 @@ int main()
   int blocks_x = (matrix_cols + threads_per_block.x - 1) / threads_per_block.x;
   int blocks_y = (matrix_rows + threads_per_block.y - 1) / threads_per_block.y;
   dim3 num_blocks(blocks_x, blocks_y);
-  int filter_radius_y = filter_rows / 2;
-  int filter_radius_x = filter_cols / 2;
-  naive_convolution<<<num_blocks, threads_per_block>>>(d_A, d_B, d_F, matrix_rows, matrix_cols, filter_rows, filter_cols, filter_radius_y, filter_radius_x);
+  naive_convolution<<<num_blocks, threads_per_block>>>(d_A, d_B, d_F);
   CUDA_CHECK(cudaGetLastError());
 
   // Record the end time and synchronize
@@ -155,7 +168,7 @@ int main()
   CUDA_CHECK(cudaMemcpy(h_B, d_B, B_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
-  if (verify_convolution(h_A, h_B, h_F, matrix_rows, matrix_cols, filter_rows, filter_cols, filter_radius_y, filter_radius_x) != 0)
+  if (verify_convolution(h_A, h_B, h_F) != 0)
   {
     return 1;
   }
