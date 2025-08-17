@@ -142,7 +142,7 @@ int main()
   // Calculate elapsed time
   float milliseconds = 0;
   CUDA_CHECK(cudaEventElapsedTime(&milliseconds, start, stop));
-  printf("Kernel execution time: %f ms\n", milliseconds);
+  printf("Kernel execution time: %f ms (use NCU for a more precise measurement!)\n", milliseconds);
 
   // Move data from device to host
   CUDA_CHECK(cudaMemcpy(h_histogram.data(), d_histogram, histogram_memsize, cudaMemcpyDeviceToHost));
