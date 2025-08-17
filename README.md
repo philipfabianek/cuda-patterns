@@ -250,7 +250,7 @@ The result is a ~2x speedup over the previous COO implementation.
 
 ### [`24-bfs-naive`](./24-bfs-naive/)
 
-In this project, I implemented a naive parallel **BFS** algorithm. The **CSR** format is used for the graph.
+In this project, I implemented a naive parallel **BFS** algorithm. The **CSR** (compressed sparse row) format is used for the graph.
 
 The host launches a separate grid for each level of the BFS. It iterates over all vertices, which is inefficient but works quite will if the graph is reasonably dense.
 
