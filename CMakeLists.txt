@@ -27,3 +27,4 @@ add_executable(20-prefix-sum-single-block-coarsened 20-prefix-sum-single-block-c
 add_executable(21-prefix-sum-general 21-prefix-sum-general/21-prefix-sum-general.cu)
 add_executable(22-sparse-matrix-vector-coo 22-sparse-matrix-vector-coo/22-sparse-matrix-vector-coo.cu)
 add_executable(23-sparse-matrix-vector-ell 23-sparse-matrix-vector-ell/23-sparse-matrix-vector-ell.cu)
+add_executable(24-bfs-naive 24-bfs-naive/24-bfs-naive.cu 24-bfs-naive/graph.cpp)

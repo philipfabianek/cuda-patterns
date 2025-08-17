@@ -246,6 +246,16 @@ The padding and the column-major ordering of elements results in coalesced memor
 
 The result is a ~2x speedup over the previous COO implementation.
 
+---
+
+### [`24-bfs-naive`](./24-bfs-naive/)
+
+In this project, I implemented a naive parallel **BFS** algorithm. The **CSR** format is used for the graph.
+
+The host launches a separate grid for each level of the BFS. It iterates over all vertices, which is inefficient but works quite will if the graph is reasonably dense.
+
+In my case, even this naive approach achieved ~80x speedup over the naive single-threaded CPU implementation.
+
 ## License
 
 This project is licensed under the MIT License.
