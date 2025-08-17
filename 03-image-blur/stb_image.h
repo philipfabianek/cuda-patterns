@@ -4868,7 +4868,8 @@ stbi_inline static int stbi__zhuffman_decode(stbi__zbuf *a, stbi__zhuffman *z)
 static int stbi__zexpand(stbi__zbuf *z, char *zout, int n) // need to make room for n bytes
 {
   char *q;
-  unsigned int cur, limit, old_limit;
+  unsigned int cur, limit, old_limit = 0;
+  old_limit = old_limit;
   z->zout = zout;
   if (!z->z_expandable)
     return stbi__err("output buffer limit", "Corrupt PNG");
@@ -6003,6 +6004,7 @@ static int stbi__parse_png_file(stbi__png *z, int scan, int req_comp)
       if (ioff + c.length > idata_limit)
       {
         stbi__uint32 idata_limit_old = idata_limit;
+        idata_limit_old = idata_limit_old;
         stbi_uc *p;
         if (idata_limit == 0)
           idata_limit = c.length > 4096 ? c.length : 4096;
@@ -8178,7 +8180,9 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
     stbi__gif g;
     int stride;
     int out_size = 0;
+    out_size = out_size;
     int delays_size = 0;
+    delays_size = delays_size;
 
     STBI_NOTUSED(out_size);
     STBI_NOTUSED(delays_size);

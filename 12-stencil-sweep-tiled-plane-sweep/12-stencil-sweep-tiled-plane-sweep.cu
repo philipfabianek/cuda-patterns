@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 #include <random>
 #include <chrono>
 
@@ -14,9 +14,15 @@
 
 constexpr bool random_initialization = false;
 constexpr int N = 500;
-constexpr int input_tile_size = 8;
+constexpr int input_tile_size = 16;
 constexpr int output_tile_size = (input_tile_size - 2);
 constexpr int samples_to_check = 100000;
+
+constexpr dim3 threads_per_block(input_tile_size, input_tile_size, 1);
+constexpr int blocks_x = (N + output_tile_size - 1) / output_tile_size;
+constexpr int blocks_y = (N + output_tile_size - 1) / output_tile_size;
+constexpr int blocks_z = (N + output_tile_size - 1) / output_tile_size;
+constexpr dim3 num_blocks(blocks_x, blocks_y, blocks_z);
 
 // Coefficients for the 7-point stencil (one for host and one for device)
 const float h_c[7] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
@@ -155,7 +161,7 @@ int main()
 
   // Define 3D data tensor
   size_t A_memsize = N * N * N * sizeof(float);
-  float *h_A = (float *)malloc(A_memsize);
+  std::vector<float> h_A(N * N * N);
 
   for (int i = 0; i < N; i++)
   {
@@ -178,7 +184,7 @@ int main()
   // Allocate memory for tensor B which will be the result
   // of applying the stencil kernel to the tensor A
   size_t B_memsize = A_memsize;
-  float *h_B = (float *)malloc(B_memsize);
+  std::vector<float> h_B(N * N * N);
 
   // Prepare device variables for the tensors
   float *d_A, *d_B;
@@ -186,7 +192,7 @@ int main()
   CUDA_CHECK(cudaMalloc((void **)&d_B, B_memsize));
 
   // Move data from host to device
-  CUDA_CHECK(cudaMemcpy(d_A, h_A, A_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), A_memsize, cudaMemcpyHostToDevice));
 
   // Create events for timing
   cudaEvent_t start, stop;
@@ -195,11 +201,6 @@ int main()
   CUDA_CHECK(cudaEventRecord(start));
 
   // Perform stencil sweep on GPU
-  dim3 threads_per_block(input_tile_size, input_tile_size, 1);
-  int blocks_x = (N + output_tile_size - 1) / output_tile_size;
-  int blocks_y = (N + output_tile_size - 1) / output_tile_size;
-  int blocks_z = (N + output_tile_size - 1) / output_tile_size;
-  dim3 num_blocks(blocks_x, blocks_y, blocks_z);
   tiled_stencil_plane_sweep_kernel<<<num_blocks, threads_per_block>>>(d_A, d_B);
   CUDA_CHECK(cudaGetLastError());
 
@@ -213,19 +214,16 @@ int main()
   printf("Kernel execution time: %f ms\n", milliseconds);
 
   // Move data from device to host
-  CUDA_CHECK(cudaMemcpy(h_B, d_B, B_memsize, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_B.data(), d_B, B_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
-  if (verify_stencil_sweep(h_A, h_B) != 0)
+  if (verify_stencil_sweep(h_A.data(), h_B.data()) != 0)
   {
     return 1;
   }
   printf("All (sampled) values match\n");
 
   // Free memory and destroy events
-  free(h_A);
-  free(h_B);
-
   CUDA_CHECK(cudaFree(d_A));
   CUDA_CHECK(cudaFree(d_B));
 

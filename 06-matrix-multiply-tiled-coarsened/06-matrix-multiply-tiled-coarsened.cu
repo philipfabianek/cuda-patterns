@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 #include <random>
 #include <chrono>
 
@@ -22,6 +22,11 @@ constexpr int C_cols = B_cols;
 constexpr int tile_width = 16;
 constexpr int coarse_factor = 4;
 constexpr int samples_to_check = 10000;
+
+constexpr dim3 threads_per_block(tile_width, tile_width);
+constexpr int blocks_x = (C_cols + (threads_per_block.x * coarse_factor) - 1) / (threads_per_block.x * coarse_factor);
+constexpr int blocks_y = (C_rows + threads_per_block.y - 1) / threads_per_block.y;
+constexpr dim3 num_blocks(blocks_x, blocks_y);
 
 __global__ void tiled_matrix_multiply_coarsened(float *d_A, float *d_B, float *d_C)
 {
@@ -129,7 +134,7 @@ int main()
 
   // Define matrix A with values from a random distribution
   size_t A_memsize = A_rows * A_cols * sizeof(float);
-  float *h_A = (float *)malloc(A_memsize);
+  std::vector<float> h_A(A_rows * A_cols);
 
   for (int i = 0; i < A_rows; i++)
   {
@@ -148,7 +153,7 @@ int main()
 
   // Define matrix B values from a random distribution
   size_t B_memsize = B_rows * B_cols * sizeof(float);
-  float *h_B = (float *)malloc(B_memsize);
+  std::vector<float> h_B(B_rows * B_cols);
 
   for (int i = 0; i < B_rows; i++)
   {
@@ -167,7 +172,7 @@ int main()
 
   // Allocate memory for matrix C which will be the product of A and B
   size_t C_memsize = C_rows * C_cols * sizeof(float);
-  float *h_C = (float *)malloc(C_memsize);
+  std::vector<float> h_C(C_rows * C_cols);
 
   // Prepare device variables for the matrices
   float *d_A, *d_B, *d_C;
@@ -176,20 +181,14 @@ int main()
   CUDA_CHECK(cudaMalloc((void **)&d_C, C_memsize));
 
   // Move data from host to device
-  CUDA_CHECK(cudaMemcpy(d_A, h_A, A_memsize, cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_B, h_B, B_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), A_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_B, h_B.data(), B_memsize, cudaMemcpyHostToDevice));
 
   // Create events for timing
   cudaEvent_t start, stop;
   CUDA_CHECK(cudaEventCreate(&start));
   CUDA_CHECK(cudaEventCreate(&stop));
   CUDA_CHECK(cudaEventRecord(start));
-
-  // Compute the number of blocks needed
-  dim3 threads_per_block(tile_width, tile_width);
-  int blocks_x = (C_cols + (threads_per_block.x * coarse_factor) - 1) / (threads_per_block.x * coarse_factor);
-  int blocks_y = (C_rows + threads_per_block.y - 1) / threads_per_block.y;
-  dim3 num_blocks(blocks_x, blocks_y);
 
   // Execute the kernel
   tiled_matrix_multiply_coarsened<<<num_blocks, threads_per_block>>>(d_A, d_B, d_C);
@@ -205,20 +204,16 @@ int main()
   printf("Kernel execution time: %f ms\n", milliseconds);
 
   // Move data from device to host
-  CUDA_CHECK(cudaMemcpy(h_C, d_C, C_memsize, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_C.data(), d_C, C_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
-  if (verify_matrix_multiplication(h_A, h_B, h_C) != 0)
+  if (verify_matrix_multiplication(h_A.data(), h_B.data(), h_C.data()) != 0)
   {
     return 1;
   }
   printf("All (sampled) values match\n");
 
   // Free memory and destroy events
-  free(h_A);
-  free(h_B);
-  free(h_C);
-
   CUDA_CHECK(cudaFree(d_A));
   CUDA_CHECK(cudaFree(d_B));
   CUDA_CHECK(cudaFree(d_C));

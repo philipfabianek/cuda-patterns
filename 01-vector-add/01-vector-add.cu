@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 
 #define CUDA_CHECK(err)                                                                          \
   {                                                                                              \
@@ -12,6 +12,7 @@
 
 constexpr int N = 1000;
 constexpr size_t mem_size = N * sizeof(int);
+
 constexpr int threads_per_block = 256;
 constexpr int blocks = (N + threads_per_block - 1) / threads_per_block;
 
@@ -26,20 +27,10 @@ __global__ void vector_add(int *d_a, int *d_b, int *d_c)
 
 int main()
 {
-  int *h_a = (int *)malloc(mem_size);
-  int *h_b = (int *)malloc(mem_size);
-  int *h_c = (int *)malloc(mem_size);
-
-  if (h_a == NULL || h_b == NULL || h_c == NULL)
-  {
-    fprintf(stderr, "Failed to allocate host vectors\n");
-    return 1;
-  }
-
-  int *d_a, *d_b, *d_c;
-  CUDA_CHECK(cudaMalloc((void **)&d_a, mem_size));
-  CUDA_CHECK(cudaMalloc((void **)&d_b, mem_size));
-  CUDA_CHECK(cudaMalloc((void **)&d_c, mem_size));
+  // Define input arrays
+  std::vector<int> h_a(N);
+  std::vector<int> h_b(N);
+  std::vector<int> h_c(N);
 
   for (int i = 0; i < N; i++)
   {
@@ -47,23 +38,30 @@ int main()
     h_b[i] = i * i;
   }
 
-  CUDA_CHECK(cudaMemcpy(d_a, h_a, mem_size, cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_b, h_b, mem_size, cudaMemcpyHostToDevice));
+  // Prepare device variables
+  int *d_a, *d_b, *d_c;
+  CUDA_CHECK(cudaMalloc((void **)&d_a, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_b, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_c, mem_size));
 
+  // Move data from host to device
+  CUDA_CHECK(cudaMemcpy(d_a, h_a.data(), mem_size, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_b, h_b.data(), mem_size, cudaMemcpyHostToDevice));
+
+  // Perform vector addition on GPU
   vector_add<<<blocks, threads_per_block>>>(d_a, d_b, d_c);
   CUDA_CHECK(cudaGetLastError());
 
-  CUDA_CHECK(cudaMemcpy(h_c, d_c, mem_size, cudaMemcpyDeviceToHost));
+  // Move data from device to host
+  CUDA_CHECK(cudaMemcpy(h_c.data(), d_c, mem_size, cudaMemcpyDeviceToHost));
 
+  // Check first 10 elements of the result
   for (int i = 0; i < 10; i++)
   {
     printf("%d\n", h_c[i]);
   }
 
-  free(h_a);
-  free(h_b);
-  free(h_c);
-
+  // Free device memory
   CUDA_CHECK(cudaFree(d_a));
   CUDA_CHECK(cudaFree(d_b));
   CUDA_CHECK(cudaFree(d_c));

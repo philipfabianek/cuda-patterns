@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 #include <random>
 #include <chrono>
 
@@ -89,7 +89,7 @@ int main()
 {
   // Define input string
   size_t input_memsize = N * sizeof(char);
-  char *h_input_string = (char *)malloc(input_memsize);
+  std::vector<char> h_input_string(N);
 
   // Make 90% characters the same to make the optimization more challenging,
   // use all characters for the last 10%
@@ -110,7 +110,7 @@ int main()
   // will store the final histogram results whereas the remaining results
   // will be added to the first block's results (see the kernel code)
   size_t histogram_memsize = blocks_per_grid * num_bins * sizeof(unsigned int);
-  unsigned int *h_histogram = (unsigned int *)malloc(histogram_memsize);
+  std::vector<unsigned int> h_histogram(blocks_per_grid * num_bins);
 
   // Prepare device variables
   char *d_input_string;
@@ -119,7 +119,7 @@ int main()
   CUDA_CHECK(cudaMalloc((void **)&d_histogram, histogram_memsize));
 
   // Move data from host to device
-  CUDA_CHECK(cudaMemcpy(d_input_string, h_input_string, input_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_input_string, h_input_string.data(), input_memsize, cudaMemcpyHostToDevice));
 
   // Initialize the histogram memory on the device to all zeros
   CUDA_CHECK(cudaMemset(d_histogram, 0, histogram_memsize));
@@ -144,20 +144,17 @@ int main()
   printf("Kernel execution time: %f ms\n", milliseconds);
 
   // Move data from device to host
-  CUDA_CHECK(cudaMemcpy(h_histogram, d_histogram, histogram_memsize, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_histogram.data(), d_histogram, histogram_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
   printf("Verifying histogram...\n");
-  if (verify_histogram(h_input_string, h_histogram) != 0)
+  if (verify_histogram(h_input_string.data(), h_histogram.data()) != 0)
   {
     return 1;
   }
   printf("All values match\n");
 
   // Free memory and destroy events
-  free(h_input_string);
-  free(h_histogram);
-
   CUDA_CHECK(cudaFree(d_input_string));
   CUDA_CHECK(cudaFree(d_histogram));
 

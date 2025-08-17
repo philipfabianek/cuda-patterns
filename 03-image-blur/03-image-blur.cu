@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -17,6 +17,7 @@
   }
 
 constexpr int blur_radius = 135;
+constexpr dim3 threads_per_block(16, 16, 1);
 
 __global__ void blur_kernel(uchar3 *d_input_image, uchar3 *d_output_image, int width, int height)
 {
@@ -68,9 +69,10 @@ int main(int argc, char *argv[])
 
   printf("Will read from %s and write to %s\n", input_filename, output_filename);
 
+  // Load input image from file
   int width, height, channels;
-  unsigned char *h_input_image = stbi_load(input_filename, &width, &height, &channels, 3);
-  if (h_input_image == NULL)
+  unsigned char *h_input_image_stb = stbi_load(input_filename, &width, &height, &channels, 3);
+  if (h_input_image_stb == NULL)
   {
     fprintf(stderr, "Error loading image: %s\n", stbi_failure_reason());
     return 1;
@@ -78,33 +80,35 @@ int main(int argc, char *argv[])
 
   printf("Loaded image %s (%d x %d)\n", input_filename, width, height);
 
-  size_t mem_size = width * height * 3 * sizeof(unsigned char);
+  size_t mem_size = (size_t)width * height * 3 * sizeof(unsigned char);
 
-  unsigned char *h_output_image = (unsigned char *)malloc(mem_size);
-  if (h_output_image == NULL)
-  {
-    fprintf(stderr, "Failed to allocate memory for output image\n");
-    stbi_image_free(h_input_image);
-    return 1;
-  }
+  // Define host input and output image vectors
+  std::vector<unsigned char> h_input_image(h_input_image_stb, h_input_image_stb + mem_size);
+  std::vector<unsigned char> h_output_image(mem_size);
 
+  stbi_image_free(h_input_image_stb);
+
+  // Prepare device variables for input and output images
   unsigned char *d_input_image;
   unsigned char *d_output_image;
   CUDA_CHECK(cudaMalloc((void **)&d_input_image, mem_size));
   CUDA_CHECK(cudaMalloc((void **)&d_output_image, mem_size));
 
-  CUDA_CHECK(cudaMemcpy(d_input_image, h_input_image, mem_size, cudaMemcpyHostToDevice));
+  // Move input image data from host to device
+  CUDA_CHECK(cudaMemcpy(d_input_image, h_input_image.data(), mem_size, cudaMemcpyHostToDevice));
 
-  dim3 threads_per_block(16, 16, 1);
-  const int blocks_x = (width + threads_per_block.x - 1) / threads_per_block.x;
-  const int blocks_y = (height + threads_per_block.y - 1) / threads_per_block.y;
-  const dim3 num_blocks(blocks_x, blocks_y);
+  // Perform image blur on GPU
+  int blocks_x = (width + threads_per_block.x - 1) / threads_per_block.x;
+  int blocks_y = (height + threads_per_block.y - 1) / threads_per_block.y;
+  dim3 num_blocks(blocks_x, blocks_y);
   blur_kernel<<<num_blocks, threads_per_block>>>((uchar3 *)d_input_image, (uchar3 *)d_output_image, width, height);
   CUDA_CHECK(cudaGetLastError());
 
-  CUDA_CHECK(cudaMemcpy(h_output_image, d_output_image, mem_size, cudaMemcpyDeviceToHost));
+  // Move output image data from device to host
+  CUDA_CHECK(cudaMemcpy(h_output_image.data(), d_output_image, mem_size, cudaMemcpyDeviceToHost));
 
-  int success = stbi_write_png(output_filename, width, height, 3, h_output_image, width * 3);
+  // Write output image to file
+  int success = stbi_write_png(output_filename, width, height, 3, h_output_image.data(), width * 3);
   if (!success)
   {
     fprintf(stderr, "Error writing image %s\n", output_filename);
@@ -114,8 +118,7 @@ int main(int argc, char *argv[])
     printf("Successfully wrote image to %s\n", output_filename);
   }
 
-  stbi_image_free(h_input_image);
-  free(h_output_image);
+  // Free device memory
   CUDA_CHECK(cudaFree(d_input_image));
   CUDA_CHECK(cudaFree(d_output_image));
 

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 #include <random>
 #include <chrono>
 
@@ -14,6 +14,7 @@
 
 // This program works with only one block, so only up to 1024 threads.
 constexpr int N = 1024;
+
 constexpr int threads_per_block = 1024;
 constexpr int blocks_per_grid = 1;
 
@@ -85,8 +86,7 @@ __global__ void prefix_sum_kernel(unsigned int *d_input_array, unsigned int *d_s
 
 int verify_prefix_sum(const unsigned int *h_input_array, const unsigned int *h_gpu_sum)
 {
-  size_t input_memsize = N * sizeof(unsigned int);
-  unsigned int *target_sum = (unsigned int *)malloc(input_memsize);
+  std::vector<unsigned int> target_sum(N);
 
   clock_t start_time = clock();
 
@@ -106,12 +106,9 @@ int verify_prefix_sum(const unsigned int *h_input_array, const unsigned int *h_g
     if (target_sum[i] != h_gpu_sum[i])
     {
       printf("Mismatch at index %d: expected %d, got %d\n", i, target_sum[i], h_gpu_sum[i]);
-      free(target_sum);
       return 1;
     }
   }
-
-  free(target_sum);
 
   return 0;
 }
@@ -125,7 +122,7 @@ int main()
 
   // Define input array with values from the random distribution
   size_t input_memsize = N * sizeof(unsigned int);
-  unsigned int *h_input_array = (unsigned int *)malloc(input_memsize);
+  std::vector<unsigned int> h_input_array(N);
 
   for (int i = 0; i < N; ++i)
   {
@@ -134,7 +131,7 @@ int main()
 
   // Allocate memory for the host prefix sum result
   size_t sum_memsize = N * sizeof(unsigned int);
-  unsigned int *h_sum_result = (unsigned int *)malloc(sum_memsize);
+  std::vector<unsigned int> h_sum_result(N);
 
   // Prepare device variables
   unsigned int *d_input_array;
@@ -143,7 +140,7 @@ int main()
   CUDA_CHECK(cudaMalloc((void **)&d_sum_result, sum_memsize));
 
   // Move data from host to device
-  CUDA_CHECK(cudaMemcpy(d_input_array, h_input_array, input_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_input_array, h_input_array.data(), input_memsize, cudaMemcpyHostToDevice));
 
   // Create events for timing
   cudaEvent_t start, stop;
@@ -165,20 +162,17 @@ int main()
   printf("Kernel execution time: %f ms\n", milliseconds);
 
   // Move data from device to host
-  CUDA_CHECK(cudaMemcpy(h_sum_result, d_sum_result, sum_memsize, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_sum_result.data(), d_sum_result, sum_memsize, cudaMemcpyDeviceToHost));
 
   // Check values and measure execution time
   printf("Verifying sum...\n");
-  if (verify_prefix_sum(h_input_array, h_sum_result) != 0)
+  if (verify_prefix_sum(h_input_array.data(), h_sum_result.data()) != 0)
   {
     return 1;
   }
   printf("All values match\n");
 
   // Free memory and destroy events
-  free(h_input_array);
-  free(h_sum_result);
-
   CUDA_CHECK(cudaFree(d_input_array));
   CUDA_CHECK(cudaFree(d_sum_result));
 

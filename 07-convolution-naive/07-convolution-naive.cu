@@ -21,6 +21,11 @@ constexpr int filter_rows = (2 * filter_radius_y + 1);
 constexpr int filter_cols = (2 * filter_radius_x + 1);
 constexpr int samples_to_check = 10000;
 
+constexpr dim3 threads_per_block(16, 16);
+constexpr int blocks_x = (matrix_cols + threads_per_block.x - 1) / threads_per_block.x;
+constexpr int blocks_y = (matrix_rows + threads_per_block.y - 1) / threads_per_block.y;
+constexpr dim3 num_blocks(blocks_x, blocks_y);
+
 __global__ void naive_convolution(float *d_A, float *d_B, float *d_F)
 {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -91,7 +96,7 @@ int main()
 
   // Define matrix A with values from a random distribution
   size_t A_memsize = matrix_rows * matrix_cols * sizeof(float);
-  float *h_A = (float *)malloc(A_memsize);
+  std::vector<float> h_A(matrix_rows * matrix_cols);
 
   for (int i = 0; i < matrix_rows; i++)
   {
@@ -110,7 +115,7 @@ int main()
 
   // Define filter F with values from a random distribution
   size_t F_memsize = filter_rows * filter_cols * sizeof(float);
-  float *h_F = (float *)malloc(F_memsize);
+  std::vector<float> h_F(filter_rows * filter_cols);
 
   for (int i = 0; i < filter_rows; i++)
   {
@@ -129,7 +134,7 @@ int main()
   // (formally cross-correlation) of the matrix A with the filter F
   // (it will have same size as A, zeros will be used as padding)
   size_t B_memsize = A_memsize;
-  float *h_B = (float *)malloc(B_memsize);
+  std::vector<float> h_B(matrix_rows * matrix_cols);
 
   // Prepare device variables for the matrices and the filter
   float *d_A, *d_B, *d_F;
@@ -138,8 +143,8 @@ int main()
   CUDA_CHECK(cudaMalloc((void **)&d_F, F_memsize));
 
   // Move data from host to device
-  CUDA_CHECK(cudaMemcpy(d_A, h_A, A_memsize, cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_F, h_F, F_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), A_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_F, h_F.data(), F_memsize, cudaMemcpyHostToDevice));
 
   // Create events for timing
   cudaEvent_t start, stop;
@@ -148,10 +153,6 @@ int main()
   CUDA_CHECK(cudaEventRecord(start));
 
   // Perform convolution on GPU
-  dim3 threads_per_block(16, 16);
-  int blocks_x = (matrix_cols + threads_per_block.x - 1) / threads_per_block.x;
-  int blocks_y = (matrix_rows + threads_per_block.y - 1) / threads_per_block.y;
-  dim3 num_blocks(blocks_x, blocks_y);
   naive_convolution<<<num_blocks, threads_per_block>>>(d_A, d_B, d_F);
   CUDA_CHECK(cudaGetLastError());
 
@@ -165,20 +166,16 @@ int main()
   printf("Kernel execution time: %f ms\n", milliseconds);
 
   // Move data from device to host
-  CUDA_CHECK(cudaMemcpy(h_B, d_B, B_memsize, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_B.data(), d_B, B_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
-  if (verify_convolution(h_A, h_B, h_F) != 0)
+  if (verify_convolution(h_A.data(), h_B.data(), h_F.data()) != 0)
   {
     return 1;
   }
   printf("All (sampled) values match\n");
 
   // Free memory and destroy events
-  free(h_A);
-  free(h_B);
-  free(h_F);
-
   CUDA_CHECK(cudaFree(d_A));
   CUDA_CHECK(cudaFree(d_B));
   CUDA_CHECK(cudaFree(d_F));

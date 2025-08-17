@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 #include <random>
 #include <chrono>
 
@@ -22,6 +22,11 @@ constexpr int filter_cols = (2 * filter_radius_x + 1);
 constexpr int tile_size = 16;
 constexpr int samples_to_check = 10000;
 
+constexpr dim3 threads_per_block(tile_size, tile_size);
+constexpr int blocks_x = (matrix_cols + threads_per_block.x - 1) / threads_per_block.x;
+constexpr int blocks_y = (matrix_rows + threads_per_block.y - 1) / threads_per_block.y;
+constexpr dim3 num_blocks(blocks_x, blocks_y);
+
 __constant__ float d_F[2 * filter_radius_y + 1][2 * filter_radius_x + 1];
 
 /*
@@ -30,7 +35,7 @@ __constant__ float d_F[2 * filter_radius_y + 1][2 * filter_radius_x + 1];
  * - To compute the output tile, the block loads a corresponding input tile into shared memory.
  *   The input tile has the same size as the output tile, so the elements
  *   outside which are needed for the convolution are loaded from global memory.
- *   This is an optimistic approach which hopes for good L2 cache hits
+ *   This is an optimistic approach which hopes for good cache hits
  *   but according to my tests it performs significantly worse than the previous tiled approach
  *   from 08-tiled-convolution.
  */
@@ -132,7 +137,7 @@ int main()
 
   // Define matrix A with values from a random distribution
   size_t A_memsize = matrix_rows * matrix_cols * sizeof(float);
-  float *h_A = (float *)malloc(A_memsize);
+  std::vector<float> h_A(matrix_rows * matrix_cols);
 
   for (int i = 0; i < matrix_rows; i++)
   {
@@ -151,7 +156,7 @@ int main()
 
   // Define filter F with values from a random distribution
   size_t F_memsize = filter_rows * filter_cols * sizeof(float);
-  float *h_F = (float *)malloc(F_memsize);
+  std::vector<float> h_F(filter_rows * filter_cols);
 
   for (int i = 0; i < filter_rows; i++)
   {
@@ -170,7 +175,7 @@ int main()
   // (formally cross-correlation) of the matrix A with the filter F
   // (it will have same size as A, zeros will be used as padding)
   size_t B_memsize = A_memsize;
-  float *h_B = (float *)malloc(B_memsize);
+  std::vector<float> h_B(matrix_rows * matrix_cols);
 
   // Prepare device variables for the matrices
   float *d_A, *d_B;
@@ -178,10 +183,10 @@ int main()
   CUDA_CHECK(cudaMalloc((void **)&d_B, B_memsize));
 
   // Move data from host to device
-  CUDA_CHECK(cudaMemcpy(d_A, h_A, A_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), A_memsize, cudaMemcpyHostToDevice));
 
   // Copy filter F to constant memory
-  CUDA_CHECK(cudaMemcpyToSymbol(d_F, h_F, F_memsize));
+  CUDA_CHECK(cudaMemcpyToSymbol(d_F, h_F.data(), F_memsize));
 
   // Create events for timing
   cudaEvent_t start, stop;
@@ -190,10 +195,6 @@ int main()
   CUDA_CHECK(cudaEventRecord(start));
 
   // Perform convolution on GPU
-  dim3 threads_per_block(tile_size, tile_size);
-  int blocks_x = (matrix_cols + tile_size - 1) / tile_size;
-  int blocks_y = (matrix_rows + tile_size - 1) / tile_size;
-  dim3 num_blocks(blocks_x, blocks_y);
   tiled_convolution<<<num_blocks, threads_per_block>>>(d_A, d_B);
   CUDA_CHECK(cudaGetLastError());
 
@@ -207,20 +208,16 @@ int main()
   printf("Kernel execution time: %f ms\n", milliseconds);
 
   // Move data from device to host
-  CUDA_CHECK(cudaMemcpy(h_B, d_B, B_memsize, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_B.data(), d_B, B_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
-  if (verify_convolution(h_A, h_B, h_F) != 0)
+  if (verify_convolution(h_A.data(), h_B.data(), h_F.data()) != 0)
   {
     return 1;
   }
   printf("All (sampled) values match\n");
 
   // Free memory and destroy events
-  free(h_A);
-  free(h_B);
-  free(h_F);
-
   CUDA_CHECK(cudaFree(d_A));
   CUDA_CHECK(cudaFree(d_B));
 

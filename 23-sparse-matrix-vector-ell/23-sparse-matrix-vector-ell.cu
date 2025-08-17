@@ -1,8 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 #include <random>
 #include <chrono>
-#include <vector>
 #include <numeric>
 #include <algorithm>
 
@@ -60,7 +59,7 @@ __global__ void spmv_ell_kernel(const float *ell_data, const int *ell_col_indice
 int verify_spmv(const float *h_value_coo, const int *h_rowIdx_coo,
                 const int *h_colIdx_coo, const float *h_x, const float *h_y_gpu)
 {
-  float *h_y_cpu = (float *)calloc(matrix_rows, sizeof(float));
+  std::vector<float> h_y_cpu(matrix_rows, 0.0f);
 
   for (int i = 0; i < num_non_zeros; ++i)
   {
@@ -78,7 +77,6 @@ int verify_spmv(const float *h_value_coo, const int *h_rowIdx_coo,
     }
   }
 
-  free(h_y_cpu);
   return status;
 }
 

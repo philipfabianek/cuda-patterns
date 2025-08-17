@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 #include <random>
 #include <chrono>
 
@@ -13,6 +13,7 @@
   }
 
 constexpr int N = 100 * 1000 * 1000;
+
 constexpr int threads_per_block = 256;
 constexpr int coarse_factor = 16;
 constexpr int blocks_per_grid = (N + (coarse_factor * threads_per_block) - 1) /
@@ -90,7 +91,7 @@ int main()
 
   // Define input array with values from the random distribution
   size_t input_memsize = N * sizeof(unsigned int);
-  unsigned int *h_input_array = (unsigned int *)malloc(input_memsize);
+  std::vector<unsigned int> h_input_array(N);
 
   for (int i = 0; i < N; ++i)
   {
@@ -99,7 +100,7 @@ int main()
 
   // Allocate memory for the host sum result
   size_t sum_memsize = sizeof(unsigned int);
-  unsigned int *h_sum_result = (unsigned int *)malloc(sum_memsize);
+  std::vector<unsigned int> h_sum_result(1);
 
   // Prepare device variables
   unsigned int *d_input_array;
@@ -108,7 +109,7 @@ int main()
   CUDA_CHECK(cudaMalloc((void **)&d_sum_result, sum_memsize));
 
   // Move data from host to device
-  CUDA_CHECK(cudaMemcpy(d_input_array, h_input_array, input_memsize, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_input_array, h_input_array.data(), input_memsize, cudaMemcpyHostToDevice));
 
   // Initialize the sum memory on the device to zero
   CUDA_CHECK(cudaMemset(d_sum_result, 0, sum_memsize));
@@ -133,20 +134,17 @@ int main()
   printf("Kernel execution time: %f ms\n", milliseconds);
 
   // Move data from device to host
-  CUDA_CHECK(cudaMemcpy(h_sum_result, d_sum_result, sum_memsize, cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(h_sum_result.data(), d_sum_result, sum_memsize, cudaMemcpyDeviceToHost));
 
   // Check values
   printf("Verifying sum...\n");
-  if (verify_sum(h_input_array, h_sum_result) != 0)
+  if (verify_sum(h_input_array.data(), h_sum_result.data()) != 0)
   {
     return 1;
   }
   printf("All values match\n");
 
   // Free memory and destroy events
-  free(h_input_array);
-  free(h_sum_result);
-
   CUDA_CHECK(cudaFree(d_input_array));
   CUDA_CHECK(cudaFree(d_sum_result));
 

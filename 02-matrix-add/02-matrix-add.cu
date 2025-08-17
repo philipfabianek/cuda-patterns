@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 
 #define CUDA_CHECK(err)                                                                          \
   {                                                                                              \
@@ -31,20 +31,10 @@ __global__ void matrix_add(int *d_A, int *d_B, int *d_C, int _rows, int _cols)
 
 int main()
 {
-  int *h_A = (int *)malloc(mem_size);
-  int *h_B = (int *)malloc(mem_size);
-  int *h_C = (int *)malloc(mem_size);
-
-  if (h_A == NULL || h_B == NULL || h_C == NULL)
-  {
-    fprintf(stderr, "Failed to allocate host matrices\n");
-    return 1;
-  }
-
-  int *d_A, *d_B, *d_C;
-  CUDA_CHECK(cudaMalloc((void **)&d_A, mem_size));
-  CUDA_CHECK(cudaMalloc((void **)&d_B, mem_size));
-  CUDA_CHECK(cudaMalloc((void **)&d_C, mem_size));
+  // Define host matrices
+  std::vector<int> h_A(cols * rows);
+  std::vector<int> h_B(cols * rows);
+  std::vector<int> h_C(cols * rows);
 
   for (int row = 0; row < rows; row++)
   {
@@ -55,6 +45,13 @@ int main()
     }
   }
 
+  // Prepare device variables
+  int *d_A, *d_B, *d_C;
+  CUDA_CHECK(cudaMalloc((void **)&d_A, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_B, mem_size));
+  CUDA_CHECK(cudaMalloc((void **)&d_C, mem_size));
+
+  // Print top-left submatrices
   printf("Top-left 5x5 submatrix of A\n");
 
   for (int row = 0; row < 5; row++)
@@ -78,14 +75,18 @@ int main()
     printf("\n");
   }
 
-  CUDA_CHECK(cudaMemcpy(d_A, h_A, mem_size, cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemcpy(d_B, h_B, mem_size, cudaMemcpyHostToDevice));
+  // Move data from host to device
+  CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), mem_size, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_B, h_B.data(), mem_size, cudaMemcpyHostToDevice));
 
+  // Perform matrix addition on GPU
   matrix_add<<<num_blocks, threads_per_block>>>(d_A, d_B, d_C, rows, cols);
   CUDA_CHECK(cudaGetLastError());
 
-  CUDA_CHECK(cudaMemcpy(h_C, d_C, mem_size, cudaMemcpyDeviceToHost));
+  // Move data from device to host
+  CUDA_CHECK(cudaMemcpy(h_C.data(), d_C, mem_size, cudaMemcpyDeviceToHost));
 
+  // Print top-left result submatrix
   printf("\n");
   printf("Top-left 5x5 submatrix of C\n");
 
@@ -98,10 +99,7 @@ int main()
     printf("\n");
   }
 
-  free(h_A);
-  free(h_B);
-  free(h_C);
-
+  // Free device memory
   CUDA_CHECK(cudaFree(d_A));
   CUDA_CHECK(cudaFree(d_B));
   CUDA_CHECK(cudaFree(d_C));
