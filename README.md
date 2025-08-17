@@ -246,4 +246,6 @@ The padding and the column-major ordering of elements results in coalesced memor
 
 The result is a ~2x speedup over the previous COO implementation.
 
----
+## License
+
+This project is licensed under the MIT License.
