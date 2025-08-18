@@ -1,5 +1,6 @@
 #include "graph.h"
 #include <algorithm>
+#include <queue>
 #include <set>
 
 std::vector<Edge> generate_random_spanning_tree(int num_vertices, std::default_random_engine &generator)
@@ -106,4 +107,45 @@ CSRGraph convert_to_csr(const std::vector<Edge> &edges, int num_vertices)
   }
 
   return graph;
+}
+
+/*
+ * Verifies the result of the BFS computation from the GPU
+ * by comparing it against a traditional CPU-based computation.
+ */
+int verify_bfs(const CSRGraph &graph, const std::vector<int> &dist, const int source_vertex)
+{
+  int status = 0;
+
+  std::vector<int> cpu_dist(graph.num_vertices, -1);
+  cpu_dist[source_vertex] = 0;
+  std::queue<int> q;
+  q.push(source_vertex);
+
+  while (!q.empty())
+  {
+    int u = q.front();
+    q.pop();
+
+    for (int i = graph.row_ptr[u]; i < graph.row_ptr[u + 1]; ++i)
+    {
+      int v = graph.col_indices[i];
+      if (cpu_dist[v] == -1)
+      {
+        cpu_dist[v] = cpu_dist[u] + 1;
+        q.push(v);
+      }
+    }
+  }
+
+  for (int i = 0; i < graph.num_vertices; ++i)
+  {
+    if (cpu_dist[i] != dist[i])
+    {
+      fprintf(stderr, "Mismatch at vertex %d: expected %d, got %d\n", i, cpu_dist[i], dist[i]);
+      status = -1;
+    }
+  }
+
+  return status;
 }

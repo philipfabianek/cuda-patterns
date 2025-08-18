@@ -54,47 +54,6 @@ __global__ void bfs_kernel(const int *row_ptr, const int *col_indices, int *dist
   }
 }
 
-/*
- * Verifies the result of the BFS computation from the GPU
- * by comparing it against a traditional CPU-based computation.
- */
-int verify_bfs(const CSRGraph &graph, const std::vector<int> &dist)
-{
-  int status = 0;
-
-  std::vector<int> cpu_dist(graph.num_vertices, -1);
-  cpu_dist[0] = 0;
-  std::queue<int> q;
-  q.push(0);
-
-  while (!q.empty())
-  {
-    int u = q.front();
-    q.pop();
-
-    for (int i = graph.row_ptr[u]; i < graph.row_ptr[u + 1]; ++i)
-    {
-      int v = graph.col_indices[i];
-      if (cpu_dist[v] == -1)
-      {
-        cpu_dist[v] = cpu_dist[u] + 1;
-        q.push(v);
-      }
-    }
-  }
-
-  for (int i = 0; i < graph.num_vertices; ++i)
-  {
-    if (cpu_dist[i] != dist[i])
-    {
-      fprintf(stderr, "Mismatch at vertex %d: CPU=%d, GPU=%d\n", i, cpu_dist[i], dist[i]);
-      status = -1;
-    }
-  }
-
-  return status;
-}
-
 int main()
 {
   // Create random number generator and random distribution
@@ -113,7 +72,8 @@ int main()
   // set distance for the source node to 0
   std::vector<int> h_dist(num_vertices);
   std::fill(h_dist.begin(), h_dist.end(), -1);
-  h_dist[0] = 0;
+  int source_vertex = 0;
+  h_dist[source_vertex] = 0;
 
   // Prepare device variables
   size_t row_ptr_memsize = graph.row_ptr.size() * sizeof(int);
@@ -172,7 +132,7 @@ int main()
 
   // Verify the result and measure CPU execution time
   auto cpu_start = std::chrono::high_resolution_clock::now();
-  if (verify_bfs(graph, h_dist) != 0)
+  if (verify_bfs(graph, h_dist, source_vertex) != 0)
   {
     printf("Verification failed\n");
   }
