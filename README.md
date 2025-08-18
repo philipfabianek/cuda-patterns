@@ -34,19 +34,19 @@ This will compile all projects. The executables will be located in the `build/` 
 
 ## Project Overview
 
-### [`01-vector-add`](./01-vector-add/)
+### [`01-vector-add`](./projects/01-vector-add)
 
 In this project, I familiarized myself with the standard CUDA program skeleton that consists of device memory allocation, host-to-device data transfer, executing the kernel and device-to-host data transfer. I also learned about the hierarchy of **grids**, **blocks** and **threads**.
 
 ---
 
-### [`02-matrix-add`](./02-matrix-add)
+### [`02-matrix-add`](./projects/02-matrix-add)
 
 In this project, I implemented basic matrix addition kernel. I learned about using 2D grids and the 2D-to-1D coordinate mapping using **strides**.
 
 ---
 
-### [`03-image-blur`](./03-image-blur)
+### [`03-image-blur`](./projects/03-image-blur)
 
 In this project, I implemented basic box blur kernel for images, where each thread computes one output pixel by averaging its neighbors.
 
@@ -56,7 +56,7 @@ This is also one of the more practical projects as it uses the `stb` library to 
 
 ---
 
-### [`04-matrix-multiply-naive`](./04-matrix-multiply-naive)
+### [`04-matrix-multiply-naive`](./projects/04-matrix-multiply-naive)
 
 In this project, I implemented a naive matrix multiplication kernel, where each thread computes one output element by reading a full row from the first matrix and a full column from the second matrix.
 
@@ -64,7 +64,7 @@ Profiling revealed a similar situation as in the previous project: Traditionally
 
 ---
 
-### [`05-matrix-multiply-tiled`](./05-matrix-multiply-tiled)
+### [`05-matrix-multiply-tiled`](./projects/05-matrix-multiply-tiled)
 
 In this project, I implemented the classical tiled matrix multiplication kernel. Threads in a block cooperate to load tiles from the input matrices into the **shared memory**. This reduces slow global memory access and can help with memory-bound problems.
 
@@ -72,7 +72,7 @@ Since the naive matrix multiplication kernel was already compute-bound, this lea
 
 ---
 
-### [`06-matrix-multiply-tiled-coarsened`](./06-matrix-multiply-tiled-coarsened)
+### [`06-matrix-multiply-tiled-coarsened`](./projects/06-matrix-multiply-tiled-coarsened)
 
 In this project, I extended the tiled matrix multiplication kernel with **thread coarsening**. Each thread is responsible for several elements (determined by a coarse factor).
 
@@ -82,13 +82,13 @@ While coarsening provided a minor performance boost with a specific coarse facto
 
 ---
 
-### [`07-convolution-naive`](./07-convolution-naive)
+### [`07-convolution-naive`](./projects/07-convolution-naive)
 
 In this project, I implemented a naive 2D convolution kernel. This is a generalization of the image blur kernel, where each thread computes one output element by performing a dot product between the input window and the filter kernel.
 
 Following the pattern from the previous projects, this traditionally memory-bound algorithm is once again compute-bound on my GPU with SM (compute) throughput over 80% for large matrices. This is again most likely due to highly effective caching.
 
-### [`08-convolution-tiled`](./08-convolution-tiled)
+### [`08-convolution-tiled`](./projects/08-convolution-tiled)
 
 In this project, I implemented a tiled 2D convolution kernel. Threads in a block cooperate to load a larger input tile into the shared memory. The larger input tile contains a **halo region** which is required to compute the convolutions for pixels near the edge of the output tile.
 
@@ -96,7 +96,7 @@ Since the naive convolution kernel was already compute-bound, this lead only to 
 
 ---
 
-### [`09-convolution-tiled-hybrid-cache`](./09-convolution-tiled-hybrid-cache)
+### [`09-convolution-tiled-hybrid-cache`](./projects/09-convolution-tiled-hybrid-cache)
 
 In this project, I experimented with a **hybrid memory access pattern** for the tiled convolution. Threads still cooperate to load the core of the input tile into the shared memory but now access the values from the halo region from global memory.
 
@@ -104,7 +104,7 @@ This is an optimistic approach which hopes for good cache hits but it performs s
 
 ---
 
-### [`10-stencil-sweep-naive`](./10-stencil-sweep-naive)
+### [`10-stencil-sweep-naive`](./projects/10-stencil-sweep-naive)
 
 In this project, I implemented a naive 3D 7-point stencil sweep kernel. While this is a specific instance of convolution the optimization opportunities are slightly different.
 
@@ -112,7 +112,7 @@ Profiling revealed over 90% memory throughput with SM (compute) throughput of ov
 
 ---
 
-### [`11-stencil-sweep-tiled`](./11-stencil-sweep-tiled)
+### [`11-stencil-sweep-tiled`](./projects/11-stencil-sweep-tiled)
 
 In this project, I implemented a tiled 3D 7-point stencil sweep kernel. Threads in a block cooperate to load a larger input tile into the shared memory, including a 1-element halo.
 
@@ -120,7 +120,7 @@ This approach lead resulted in balanced throughputs, however it lead to signific
 
 ---
 
-### [`12-stencil-sweep-tiled-plane-sweep`](./12-stencil-sweep-tiled-plane-sweep)
+### [`12-stencil-sweep-tiled-plane-sweep`](./projects/12-stencil-sweep-tiled-plane-sweep)
 
 In this project, I implemented a 3D 7-point stencil sweep kernel using a **plane sweep** technique.
 
@@ -131,7 +131,7 @@ The reduction in shared memory usage allowed larger blocks to be used and the re
 
 ---
 
-### [`13-parallel-histogram-naive`](./13-parallel-histogram-naive)
+### [`13-parallel-histogram-naive`](./projects/13-parallel-histogram-naive)
 
 In this project, I implemented a naive parallel histogram kernel, which computes character frequencies.
 Results are written to global memory, with race conditions prevented by using `atomicAdd`.
@@ -140,7 +140,7 @@ This creates a massive bottleneck since threads are forced to wait for the lock 
 
 ---
 
-### [`14-parallel-histogram-privatized`](./14-parallel-histogram-privatized)
+### [`14-parallel-histogram-privatized`](./projects/14-parallel-histogram-privatized)
 
 In this project, I extended the parallel histogram kernel by using **privatization**.
 
@@ -150,7 +150,7 @@ This alleviates the contention of the atomic operations and significantly improv
 
 ---
 
-### [`15-parallel-histogram-shared`](./15-parallel-histogram-shared)
+### [`15-parallel-histogram-shared`](./projects/15-parallel-histogram-shared)
 
 In this project, I extended the previous privatized parallel histogram kernel by using shared memory.
 
@@ -161,7 +161,7 @@ The result is a ~4x speedup over the previous version.
 
 ---
 
-### [`16-parallel-histogram-shared-coarsened`](./16-parallel-histogram-shared-coarsened)
+### [`16-parallel-histogram-shared-coarsened`](./projects/16-parallel-histogram-shared-coarsened)
 
 In this project, I extended the shared memory parallel histogram kernel by using thread coarsening. Each thread processes a number of elements depending on the coarse factor.
 
@@ -171,7 +171,7 @@ This approach leads to a further ~2.5x speedup over the previous version.
 
 ---
 
-### [`17-parallel-histogram-hybrid`](./17-parallel-histogram-hybrid)
+### [`17-parallel-histogram-hybrid`](./projects/17-parallel-histogram-hybrid)
 
 In this project, I also extended the shared memory parallel histogram kernel (not the previous one) with thread coarsening. The difference is that in this project, the memory access pattern of threads is **sequential**.
 
@@ -184,7 +184,7 @@ The hyperparameters in this project were optimized using an automated **grid sea
 
 ---
 
-### [`18-parallel-reduction`](./18-parallel-reduction)
+### [`18-parallel-reduction`](./projects/18-parallel-reduction)
 
 In this project, I implemented an optimized parallel reduction kernel which computes the sum of an array of integers.
 
@@ -194,7 +194,7 @@ This implementation achieves a ~20x speedup over a naive single-threaded CPU imp
 
 ---
 
-### [`19-prefix-sum-single-block`](./19-prefix-sum-single-block)
+### [`19-prefix-sum-single-block`](./projects/19-prefix-sum-single-block)
 
 In this project, I implemented two single-block prefix sum (sequential scan) kernels. One uses the **Kogge-Stone** prefix sum algorithm and the other one uses the **Brent-Kung prefix** sum algorithm.
 
@@ -202,7 +202,7 @@ There is a trade-off between the algorithms but it is difficult to analyze it in
 
 ---
 
-### [`20-prefix-sum-single-block-coarsened`](./20-prefix-sum-single-block-coarsened)
+### [`20-prefix-sum-single-block-coarsened`](./projects/20-prefix-sum-single-block-coarsened)
 
 In this project, I extended the previous prefix Kogge-Stone prefix sum kernel by using shared memory and thread coarsening.
 
@@ -218,7 +218,7 @@ The speedup is very minor given the one-block limitation but this implementation
 
 ---
 
-### [`21-prefix-sum-general`](./21-prefix-sum-general)
+### [`21-prefix-sum-general`](./projects/21-prefix-sum-general)
 
 In this project, I implemented a general prefix sum kernel using the Kogge-Stone algorithm.
 
@@ -230,7 +230,7 @@ Overall, this complex implementation achieves a ~30x speedup over a naive single
 
 ---
 
-### [`22-sparse-matrix-vector-coo`](./22-sparse-matrix-vector-coo)
+### [`22-sparse-matrix-vector-coo`](./projects/22-sparse-matrix-vector-coo)
 
 In this project, I implemented sparse matrix-vector multiplication (SpMV) kernel using the **COO** (coordinate) format. This format is convenient to work with but results in a very scattered global memory access for the vector.
 
@@ -238,7 +238,7 @@ Each thread computes the product of one non-zero element of the matrix and atomi
 
 ---
 
-### [`23-sparse-matrix-vector-ell`](./23-sparse-matrix-vector-ell)
+### [`23-sparse-matrix-vector-ell`](./projects/23-sparse-matrix-vector-ell)
 
 In this project, I implemented sparse matrix-vector multiplication (SpMV) kernel using the **ELL** (ELLPACK) format. With this format, each thread writes to its own unique row so no atomic operations are needed.
 
@@ -248,7 +248,7 @@ The result is a ~2x speedup over the previous COO implementation.
 
 ---
 
-### [`24-bfs-naive`](./24-bfs-naive/)
+### [`24-bfs-naive`](./projects/24-bfs-naive/)
 
 In this project, I implemented a naive parallel **BFS** algorithm. The **CSR** (compressed sparse row) format is used for the graph.
 
