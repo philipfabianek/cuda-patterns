@@ -3,7 +3,7 @@
 #include <random>
 #include <chrono>
 #include <queue>
-#include "graph.h"
+#include "graph/graph.h"
 
 #define CUDA_CHECK(err)                                                                          \
   {                                                                                              \

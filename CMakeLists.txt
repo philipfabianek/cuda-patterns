@@ -4,9 +4,22 @@ project(CudaPatterns LANGUAGES CXX CUDA)
 
 find_package(CUDA REQUIRED)
 
+# --- Shared Libraries ---
+
+# My own small library for graph construction and various graph representations
+add_library(graph_lib common/graph/graph.cpp common/graph/graph.h)
+target_include_directories(graph_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/common)
+
+# stb library (https://github.com/nothings/stb)
+add_library(stb_headers INTERFACE)
+target_include_directories(stb_headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/common)
+
+# --- Executables ---
+
 add_executable(01-vector-add 01-vector-add/01-vector-add.cu)
 add_executable(02-matrix-add 02-matrix-add/02-matrix-add.cu)
 add_executable(03-image-blur 03-image-blur/03-image-blur.cu)
+target_link_libraries(03-image-blur PRIVATE stb_headers)
 add_executable(04-matrix-multiply-naive 04-matrix-multiply-naive/04-matrix-multiply-naive.cu)
 add_executable(05-matrix-multiply-tiled 05-matrix-multiply-tiled/05-matrix-multiply-tiled.cu)
 add_executable(06-matrix-multiply-tiled-coarsened 06-matrix-multiply-tiled-coarsened/06-matrix-multiply-tiled-coarsened.cu)
@@ -27,4 +40,5 @@ add_executable(20-prefix-sum-single-block-coarsened 20-prefix-sum-single-block-c
 add_executable(21-prefix-sum-general 21-prefix-sum-general/21-prefix-sum-general.cu)
 add_executable(22-sparse-matrix-vector-coo 22-sparse-matrix-vector-coo/22-sparse-matrix-vector-coo.cu)
 add_executable(23-sparse-matrix-vector-ell 23-sparse-matrix-vector-ell/23-sparse-matrix-vector-ell.cu)
-add_executable(24-bfs-naive 24-bfs-naive/24-bfs-naive.cu 24-bfs-naive/graph.cpp)
+add_executable(24-bfs-naive 24-bfs-naive/24-bfs-naive.cu)
+target_link_libraries(24-bfs-naive PRIVATE graph_lib)
