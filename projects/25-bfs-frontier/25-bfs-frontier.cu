@@ -21,9 +21,9 @@ constexpr int threads_per_block = 512;
 
 /*
  * Performs BFS for a given level.
- - Finds vertices with distance equal to <prev_level> and iterates over their neighbors.
- - If the neighbor is unvisited, sets its distance to the current level (<prev_level> + 1).
- - Each thread is responsible for one vertex, one grid is launched per level.
+ - Iterates over the previous frontier and adds unvisited vertices to the current frontier
+   while saving their distance.
+ - Each thread is responsible for one vertex from the previous frontier.
  */
 __global__ void bfs_kernel(const int *row_ptr, const int *col_indices, int *dist,
                            int *prev_frontier, int *prev_frontier_num,
