@@ -20,7 +20,7 @@ constexpr int num_bins = 64;
 constexpr int num_unique_chars = 50;
 
 // These parameters were optimized using grid search (see run_search.sh),
-// this of course depends on the GPU (mine is RTX 3070)
+// this of course depends on the GPU)
 constexpr int threads_per_block = 512;
 constexpr int coarse_factor = 16;
 constexpr int block_multiplier = 16;

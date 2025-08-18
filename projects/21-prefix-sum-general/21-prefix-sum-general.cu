@@ -14,7 +14,7 @@
 
 constexpr unsigned int N = 100 * 1000 * 1000;
 
-// This configuration yielded the best performance on my GPU (RTX 3070)
+// This configuration yielded the best performance on my GPU
 constexpr unsigned int threads_per_block = 128;
 constexpr unsigned int coarse_factor = 64;
 constexpr unsigned int base_block_size = threads_per_block * coarse_factor;

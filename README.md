@@ -2,7 +2,7 @@
 
 This repository is a collection of CUDA projects that implement and optimize the fundamental algorithms, patterns and techniques in GPU programming. The projects are based on concepts from the famous "Programming Massively Parallel Processors" (PMPP) textbook.
 
-Each implementation was profiled with NVIDIA Nsight Compute to inspect metrics like kernel duration, occupancies and various throughputs. This approach led to various kernel optimizations and hyperparameter tuning (for my GPU) in the more complex projects. All reported speedups are for kernel execution time only and do not include host-device memory transfers.
+Each implementation was profiled with NVIDIA Nsight Compute to inspect metrics like kernel duration, occupancies and various throughputs. This approach led to various kernel optimizations and hyperparameter tuning, specifically for an NVIDIA GeForce RTX 3070. All reported speedups are for kernel execution time only and do not include host-device memory transfers.
 
 Noteworthy projects include:
 
@@ -250,11 +250,35 @@ The result is a ~2x speedup over the previous COO implementation.
 
 ### [`24-bfs-naive`](./projects/24-bfs-naive/)
 
-In this project, I implemented a naive parallel **BFS** algorithm. The **CSR** (compressed sparse row) format is used for the graph.
+In this project, I implemented a naive parallel **BFS** algorithm. The **CSR** (compressed sparse row) format is used for the graph representation.
 
 The host launches a separate grid for each level of the BFS. It iterates over all vertices, which is inefficient but works quite will if the graph is reasonably dense.
 
 In my case, even this naive approach achieved ~80x speedup over the naive single-threaded CPU implementation.
+
+---
+
+### [`25-bfs-frontier`](./projects/25-bfs-frontier/)
+
+In this project, I implemented a parallel BFS algorithm using **frontiers**. Again, the CSR format is used for the graph representation.
+
+The host launches a separate grid for each level of the BFS, but the grid iterates only over vertices from the frontier and not all vertices like the naive approach. It saves the distances to unvisited neighbors and adds them to the next frontier.
+
+This resulted in a slower program compared to the previous naive parallel BFS with low throughputs, most likely because of the atomic operations and the additional overhead of frontier management. The speed of course depends on graph sparsity, and this is significantly slower for dense graphs (expected) but also slower for relatively sparse graphs.
+
+Note that for very sparse graphs using an algorithm based on specific heuristics would most likely outperform both the naive and frontier approaches.
+
+---
+
+### [`26-bfs-frontier-privatized`](./projects/26-bfs-frontier-privatized/)
+
+In this project, I extended the previous frontier-based parallel BFS algorithm with **privatization**.
+
+Threads in a block use shared memory to construct the part of the next frontier for the given block. This part is then commited at the end of each block.
+
+This reduces the number of global atomic operations but introduces new ones within blocks. The performance also heavily depends on the graph sparsity and hyperparameters since if the size of the frontier within block exceeds shared memory then the global frontier is used.
+
+This approach seems to be even slower than the previous one but in some specific cases, with relatively sparse graphs and specific hyperparameters, it outperformed the previous approach. However, it never outperformed the naive approach, even for sparse graphs.
 
 ## License
 
