@@ -6,7 +6,7 @@ find_package(CUDA REQUIRED)
 
 # --- Shared Libraries ---
 
-# My own small library for graph construction and various graph representations
+# My own small library for graph construction, representation conversion and verification
 add_library(graph_lib common/graph/graph.cpp common/graph/graph.h)
 target_include_directories(graph_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/common)
 
@@ -42,3 +42,5 @@ add_executable(22-sparse-matrix-vector-coo projects/22-sparse-matrix-vector-coo/
 add_executable(23-sparse-matrix-vector-ell projects/23-sparse-matrix-vector-ell/23-sparse-matrix-vector-ell.cu)
 add_executable(24-bfs-naive projects/24-bfs-naive/24-bfs-naive.cu)
 target_link_libraries(24-bfs-naive PRIVATE graph_lib)
+add_executable(25-bfs-frontier projects/25-bfs-frontier/25-bfs-frontier.cu)
+target_link_libraries(25-bfs-frontier PRIVATE graph_lib)
