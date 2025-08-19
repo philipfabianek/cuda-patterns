@@ -248,7 +248,7 @@ The result is a ~2x speedup over the previous COO implementation.
 
 ---
 
-### [`24-bfs-naive`](./projects/24-bfs-naive/)
+### [`24-bfs-naive`](./projects/24-bfs-naive)
 
 In this project, I implemented a naive parallel **BFS** algorithm. The **CSR** (compressed sparse row) format is used for the graph representation.
 
@@ -258,7 +258,7 @@ In my case, even this naive approach achieved ~80x speedup over the naive single
 
 ---
 
-### [`25-bfs-frontier`](./projects/25-bfs-frontier/)
+### [`25-bfs-frontier`](./projects/25-bfs-frontier)
 
 In this project, I implemented a parallel BFS algorithm using **frontiers**. Again, the CSR format is used for the graph representation.
 
@@ -270,7 +270,7 @@ Note that for very sparse graphs using an algorithm based on specific heuristics
 
 ---
 
-### [`26-bfs-frontier-privatized`](./projects/26-bfs-frontier-privatized/)
+### [`26-bfs-frontier-privatized`](./projects/26-bfs-frontier-privatized)
 
 In this project, I extended the previous frontier-based parallel BFS algorithm with **privatization**.
 
@@ -279,6 +279,14 @@ Threads in a block use shared memory to construct the part of the next frontier 
 This reduces the number of global atomic operations but introduces new ones within blocks. The performance also heavily depends on the graph sparsity and hyperparameters since if the size of the frontier within block exceeds shared memory then the global frontier is used.
 
 This approach seems to be even slower than the previous one but in some specific cases, with relatively sparse graphs and specific hyperparameters, it outperformed the previous approach. However, it never outperformed the naive approach, even for sparse graphs.
+
+---
+
+### [`27-potential-map-naive`](./projects/27-potential-map-naive)
+
+In this project, I implemented a naive kernel for electrostatic potential map calculation, where each thread computes the potential for a single grid point.
+
+Because of high arithmetic intensity, the SM (compute) throughput is over 90%. Even this simple implementation provides a speedup of over 1,000x over a naive single-threaded CPU implementation.
 
 ## License
 
