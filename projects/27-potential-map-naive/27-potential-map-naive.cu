@@ -44,7 +44,7 @@ __global__ void potential_kernel(const float *d_atom_data, float *d_potential_ma
       float atom_y = d_atom_data[4 * atom_idx + 1];
       float atom_z = d_atom_data[4 * atom_idx + 2];
       float atom_charge = d_atom_data[4 * atom_idx + 3];
-      float dist = sqrtf(powf(atom_x - (float)x, 2) + powf(atom_y - (float)y, 2) + powf(atom_z - (float)z, 2));
+      float dist = sqrtf((atom_x - (float)x) * (atom_x - (float)x) + (atom_y - (float)y) * (atom_y - (float)y) + (atom_z - (float)z) * (atom_z - (float)z));
       potential += atom_charge / (dist + 1e-6f);
     }
 
@@ -85,7 +85,7 @@ int verify_potential_map(const std::vector<float> &atom_data, const std::vector<
           float atom_y = atom_data[4 * atom_idx + 1];
           float atom_z = atom_data[4 * atom_idx + 2];
           float atom_charge = atom_data[4 * atom_idx + 3];
-          float dist = sqrtf(powf(atom_x - (float)x, 2) + powf(atom_y - (float)y, 2) + powf(atom_z - (float)z, 2));
+          float dist = sqrtf((atom_x - (float)x) * (atom_x - (float)x) + (atom_y - (float)y) * (atom_y - (float)y) + (atom_z - (float)z) * (atom_z - (float)z));
           potential += atom_charge / (dist + 1e-6f);
         }
 

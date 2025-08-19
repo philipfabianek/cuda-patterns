@@ -2,7 +2,6 @@
 #include <vector>
 #include <random>
 #include <chrono>
-#include <cuda_fp16.h>
 
 #define CUDA_CHECK(err)                                                                          \
   {                                                                                              \
@@ -89,7 +88,7 @@ int verify_potential_map(const std::vector<float> &atom_data, const std::vector<
           float atom_y = atom_data[4 * atom_idx + 1];
           float atom_z = atom_data[4 * atom_idx + 2];
           float atom_charge = atom_data[4 * atom_idx + 3];
-          float dist = sqrtf(powf(atom_x - (float)x, 2) + powf(atom_y - (float)y, 2) + powf(atom_z - (float)z, 2) + 1e-12f);
+          float dist = sqrtf((atom_x - (float)x) * (atom_x - (float)x) + (atom_y - (float)y) * (atom_y - (float)y) + (atom_z - (float)z) * (atom_z - (float)z));
           potential += atom_charge / dist;
         }
 
@@ -132,10 +131,6 @@ int main()
   std::vector<float> h_potential_map(grid_size.x * grid_size.y * grid_size.z, 0.0f);
 
   // Prepare device variables
-  // size_t atom_data_memsize = 4 * num_atoms * sizeof(float);
-  // float *d_atom_data;
-  // CUDA_CHECK(cudaMalloc((void **)&d_atom_data, atom_data_memsize));
-
   size_t potential_map_memsize = grid_size.x * grid_size.y * grid_size.z * sizeof(float);
   float *d_potential_map;
   CUDA_CHECK(cudaMalloc((void **)&d_potential_map, potential_map_memsize));
@@ -184,7 +179,6 @@ int main()
   printf("CPU execution time: %f milliseconds\n", cpu_time.count());
 
   // Free memory and destroy events
-  // CUDA_CHECK(cudaFree(d_atom_data));
   CUDA_CHECK(cudaFree(d_potential_map));
 
   CUDA_CHECK(cudaEventDestroy(start));

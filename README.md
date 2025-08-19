@@ -286,7 +286,7 @@ This approach seems to be even slower than the previous one but in some specific
 
 In this project, I implemented a naive kernel for electrostatic potential map calculation, where each thread computes the potential for a single grid point.
 
-Because of high arithmetic intensity, the SM (compute) throughput is over 90%. Even this simple implementation provides a speedup of over 1,000x over a naive single-threaded CPU implementation.
+Because of high arithmetic intensity, the SM (compute) throughput is over 90%. Even this simple implementation provides a ~2,500x speedup over a naive single-threaded CPU implementation.
 
 ---
 
@@ -296,7 +296,7 @@ In this project, I applied several micro-optimizations to the previous naive ker
 
 While some techniques had little to no impact, the most significant performance gains came from using `rsqrtf` for more efficient computation and adding `#pragma unroll` to eliminate some loop overhead. Furthermore, `__constant__` memory was used for the read-only atom data.
 
-The result was a surprising ~20x speedup over the previous version and overall ~20,000x speedup over a naive single-threaded CPU implementation.
+The result was a surprising ~3x speedup over the previous version and overall ~7,500x speedup over a naive single-threaded CPU implementation.
 
 ## License
 
