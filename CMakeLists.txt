@@ -48,3 +48,4 @@ add_executable(26-bfs-frontier-privatized projects/26-bfs-frontier-privatized/26
 target_link_libraries(26-bfs-frontier-privatized PRIVATE graph_lib)
 add_executable(27-potential-map-naive projects/27-potential-map-naive/27-potential-map-naive.cu)
 add_executable(28-potential-map-micro-optimized projects/28-potential-map-micro-optimized/28-potential-map-micro-optimized.cu)
+add_executable(29-potential-map-coarsened projects/29-potential-map-coarsened/29-potential-map-coarsened.cu)

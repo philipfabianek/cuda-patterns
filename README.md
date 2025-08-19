@@ -7,7 +7,8 @@ Each implementation was profiled with NVIDIA Nsight Compute to inspect metrics l
 Noteworthy projects include:
 
 - **`17-parallel-histogram-hybrid`**: An optimized histogram kernel using shared memory, thread coarsening and sequential memory access via a grid-stride loop. Hyperparameters were finetuned with an automated grid search. The result is a ~1,000x speedup over single-threaded CPU implementation.
-- **`21-prefix-sum-general`**: A scalable, multi-block parallel prefix sum (inclusive scan) implementation. It uses a hierarchical two phase approach (up-sweep and down-sweep) to build and traverse a reduction tree. The result is a ~30x speedup over a single-threaded CPU implementation.
+- **`21-prefix-sum-general`**: A scalable, multi-block parallel prefix sum (inclusive scan) implementation. It uses a hierarchical two phase approach (up-sweep and down-sweep) to build and traverse a reduction tree. The result is a ~30x speedup over the inherently serial single-threaded CPU implementation.
+- **`29-potential-map-coarsened`**: An electrostatic potential map kernel optimized by combining micro-optimizations with a thread coarsening strategy that reuses intermediate calculations. This approach, along with careful hyperparameter tuning, resulted in a ~12,000x speedup over a naive single-threaded CPU implementation.
 
 ## Building the Projects
 
@@ -296,7 +297,17 @@ In this project, I applied several micro-optimizations to the previous naive ker
 
 While some techniques had little to no impact, the most significant performance gains came from using `rsqrtf` for more efficient computation and adding `#pragma unroll` to eliminate some loop overhead. Furthermore, `__constant__` memory was used for the read-only atom data.
 
-The result was a surprising ~3x speedup over the previous version and overall ~7,500x speedup over a naive single-threaded CPU implementation.
+The result is a reasonable ~3x speedup over the previous version and overall ~7,500x speedup over a naive single-threaded CPU implementation.
+
+---
+
+### [`29-potential-map-coarsened`](./projects/29-potential-map-coarsened)
+
+In this project, I implemented the final optimization for the potential map kernel by adding thread coarsening and further reducing the number of operations.
+
+These gains were quite hard to find and it took careful hyperparameter tuning for this approach to yield a nice ~1.5x speedup over the previous kernel.
+
+Overall, this final kernel is ~12,000x faster than the naive single-threaded CPU implementation.
 
 ## License
 
