@@ -8,7 +8,7 @@ Noteworthy projects include:
 
 - **`17-parallel-histogram-hybrid`**: An optimized histogram kernel using shared memory, thread coarsening and sequential memory access via a grid-stride loop. Hyperparameters were finetuned with an automated grid search. The result is a ~1,000x speedup over single-threaded CPU implementation.
 - **`21-prefix-sum-general`**: A scalable, multi-block parallel prefix sum (inclusive scan) implementation. It uses a hierarchical two phase approach (up-sweep and down-sweep) to build and traverse a reduction tree. The result is a ~30x speedup over the inherently serial single-threaded CPU implementation.
-- **`29-potential-map-coarsened`**: An electrostatic potential map kernel optimized by combining micro-optimizations with a thread coarsening strategy that reuses intermediate calculations. This approach, along with careful hyperparameter tuning, resulted in a ~12,000x speedup over a naive single-threaded CPU implementation.
+- **`29-potential-map-coarsened`**: An electrostatic potential map kernel optimized by combining micro-optimizations with a thread coarsening strategy that reuses intermediate calculations. The final kernel achieves ~34% of the device's peak theoretical performance and a ~12,000x speedup over a naive single-threaded CPU implementation.
 
 ## Building the Projects
 
@@ -307,7 +307,7 @@ In this project, I implemented the final optimization for the potential map kern
 
 These gains were quite hard to find and it took careful hyperparameter tuning for this approach to yield a nice ~1.5x speedup over the previous kernel.
 
-Overall, this final kernel is ~12,000x faster than the naive single-threaded CPU implementation.
+Overall, this final kernel is ~12,000x faster than the naive single-threaded CPU implementation. The kernel is strongly compute-bound, achieving a measured performance of ~5.9 TFLOPS. This represents ~34% of the theoretical peak FP32 performance of the NVIDIA RTX 3070.
 
 ## License
 
