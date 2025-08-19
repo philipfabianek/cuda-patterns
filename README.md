@@ -11,7 +11,7 @@ Noteworthy projects include:
 
 ## Building the Projects
 
-This repository uses CMake to build all 23 projects.
+This repository uses CMake to build all projects.
 
 ### 1. Prerequisites
 
