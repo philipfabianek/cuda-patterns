@@ -12,7 +12,7 @@
     }                                                                                            \
   }
 
-constexpr unsigned int N = 100 * 1000 * 1000;
+constexpr unsigned int N = 1024 * 1024;
 
 // This configuration yielded the best performance on my GPU
 constexpr unsigned int threads_per_block = 128;

@@ -12,7 +12,7 @@
     }                                                                                            \
   }
 
-constexpr int N = 1000 * 1000 * 1000;
+constexpr int N = 512 * 512 * 512;
 constexpr char initial_char = 'A';
 constexpr int num_bins = 64;
 // Cannot be too large due because of signed char
@@ -120,12 +120,16 @@ int main()
   // Move data from device to host
   CUDA_CHECK(cudaMemcpy(h_histogram.data(), d_histogram, histogram_memsize, cudaMemcpyDeviceToHost));
 
-  // Check values
+  // Check values and compute CPU time
+  auto start_cpu = std::chrono::high_resolution_clock::now();
   printf("Verifying histogram...\n");
   if (verify_histogram(h_input_string.data(), h_histogram.data()) != 0)
   {
     return 1;
   }
+  auto end_cpu = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<float, std::milli> cpu_duration = end_cpu - start_cpu;
+  printf("CPU verification time: %f ms\n", cpu_duration.count());
   printf("All values match\n");
 
   // Free memory and destroy events

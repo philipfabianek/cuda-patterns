@@ -12,8 +12,8 @@
     }                                                                                            \
   }
 
-constexpr int matrix_rows = 50000;
-constexpr int matrix_cols = 40000;
+constexpr int matrix_rows = 4096;
+constexpr int matrix_cols = 4096;
 constexpr float sparsity = 0.01f;
 constexpr int num_non_zeros = matrix_rows * matrix_cols * sparsity;
 

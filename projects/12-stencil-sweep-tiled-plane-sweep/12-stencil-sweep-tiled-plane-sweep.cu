@@ -13,7 +13,7 @@
   }
 
 constexpr bool random_initialization = false;
-constexpr int N = 500;
+constexpr int N = 512;
 constexpr int input_tile_size = 16;
 constexpr int output_tile_size = (input_tile_size - 2);
 constexpr int samples_to_check = 100000;

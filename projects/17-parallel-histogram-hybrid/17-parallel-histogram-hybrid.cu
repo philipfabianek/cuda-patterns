@@ -12,7 +12,7 @@
     }                                                                                            \
   }
 
-constexpr int N = 1000 * 1000 * 1000;
+constexpr int N = 512 * 512 * 512;
 constexpr char initial_char = 'A';
 constexpr int num_bins = 64;
 // Cannot be too large due because of signed char

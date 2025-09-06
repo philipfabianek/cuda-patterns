@@ -10,8 +10,8 @@
     }                                                                                            \
   }
 
-constexpr int cols = 256;
-constexpr int rows = 256;
+constexpr int cols = 1024;
+constexpr int rows = 1024;
 constexpr size_t mem_size = cols * rows * sizeof(int);
 
 constexpr dim3 threads_per_block(16, 16);

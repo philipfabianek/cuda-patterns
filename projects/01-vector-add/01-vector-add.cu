@@ -10,7 +10,7 @@
     }                                                                                            \
   }
 
-constexpr int N = 1000;
+constexpr int N = 1024 * 1024;
 constexpr size_t mem_size = N * sizeof(int);
 
 constexpr int threads_per_block = 256;

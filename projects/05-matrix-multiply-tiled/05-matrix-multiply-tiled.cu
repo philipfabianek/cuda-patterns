@@ -13,10 +13,10 @@
   }
 
 constexpr bool random_initialization = false;
-constexpr int A_rows = 10000;
-constexpr int A_cols = 10000;
-constexpr int B_rows = 10000;
-constexpr int B_cols = 10000;
+constexpr int A_rows = 1024;
+constexpr int A_cols = 1024;
+constexpr int B_rows = 1024;
+constexpr int B_cols = 1024;
 constexpr int C_rows = A_rows;
 constexpr int C_cols = B_cols;
 constexpr int tile_width = 16;

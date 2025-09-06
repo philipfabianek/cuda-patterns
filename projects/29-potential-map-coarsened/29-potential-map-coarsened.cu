@@ -12,8 +12,8 @@
     }                                                                                            \
   }
 
-constexpr dim3 grid_size(100, 100, 100);
-constexpr int num_atoms = 100;
+constexpr dim3 grid_size(128, 128, 128);
+constexpr int num_atoms = 128;
 __constant__ float d_atom_data[4 * num_atoms];
 // constexpr int samples_to_check = 10000;
 

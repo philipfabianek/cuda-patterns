@@ -13,7 +13,7 @@
   }
 
 constexpr bool random_initialization = false;
-constexpr int N = 500;
+constexpr int N = 512;
 constexpr int block_size = 8;
 constexpr int samples_to_check = 100000;
 

@@ -14,8 +14,8 @@
     }                                                                                            \
   }
 
-constexpr int num_vertices = 100000;
-constexpr int num_edges = 1000000;
+constexpr int num_vertices = 128 * 1024;
+constexpr int num_edges = 1024 * 1024;
 
 constexpr int threads_per_block = 1024;
 constexpr int local_frontier_capacity = 4096;

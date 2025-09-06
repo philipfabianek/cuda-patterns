@@ -13,10 +13,10 @@
   }
 
 constexpr bool random_initialization = false;
-constexpr int A_rows = 10000;
-constexpr int A_cols = 10000;
-constexpr int B_rows = 10000;
-constexpr int B_cols = 10000;
+constexpr int A_rows = 1024;
+constexpr int A_cols = 1024;
+constexpr int B_rows = 1024;
+constexpr int B_cols = 1024;
 constexpr int C_rows = A_rows;
 constexpr int C_cols = B_cols;
 constexpr int tile_width = 16;
@@ -30,66 +30,78 @@ constexpr dim3 num_blocks(blocks_x, blocks_y);
 
 __global__ void tiled_matrix_multiply_coarsened(float *d_A, float *d_B, float *d_C)
 {
-  int col = blockIdx.x * blockDim.x * coarse_factor + threadIdx.x;
-  int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int A_read_row = blockIdx.y * blockDim.y + threadIdx.y;
+  int A_initial_read_col = threadIdx.x;
+
+  int A_smem_row = threadIdx.y;
+  int A_smem_col = threadIdx.x;
+
+  int B_initial_read_row = threadIdx.y;
+  int B_initial_read_col = blockIdx.x * blockDim.x * coarse_factor + threadIdx.x;
+
+  int B_smem_row = threadIdx.y;
+  int B_initial_smem_col = threadIdx.x;
+
+  int C_write_row = blockIdx.y * blockDim.y + threadIdx.y;
+  int C_initial_write_col = blockIdx.x * blockDim.x * coarse_factor + threadIdx.x * coarse_factor;
 
   int num_tiles = (A_cols + tile_width - 1) / tile_width;
   __shared__ float A_tile[tile_width][tile_width];
-  __shared__ float B_tile[tile_width][tile_width];
+  __shared__ float B_tile[tile_width][coarse_factor * tile_width];
 
-  float sum[coarse_factor];
-  for (int j = 0; j < coarse_factor; j++)
-  {
-    sum[j] = 0.0f;
-  }
+  float sums[coarse_factor] = {0.0};
 
   for (int i = 0; i < num_tiles; i++)
   {
-    int A_read_row = row;
-    int A_read_col = tile_width * i + threadIdx.x;
+    int A_read_col = A_initial_read_col + tile_width * i;
 
     if (A_read_row < A_rows && A_read_col < A_cols)
     {
-      A_tile[threadIdx.y][threadIdx.x] = d_A[A_read_row * A_cols + A_read_col];
+      A_tile[A_smem_row][A_smem_col] = d_A[A_read_row * A_cols + A_read_col];
     }
     else
     {
-      A_tile[threadIdx.y][threadIdx.x] = 0;
+      A_tile[A_smem_row][A_smem_col] = 0;
     }
 
     for (int j = 0; j < coarse_factor; j++)
     {
-      int B_read_row = tile_width * i + threadIdx.y;
-      int B_read_col = col + j * tile_width;
+      int B_read_row = B_initial_read_row + tile_width * i;
+      int B_read_col = B_initial_read_col + j * tile_width;
 
       if (B_read_row < B_rows && B_read_col < B_cols)
       {
-        B_tile[threadIdx.y][threadIdx.x] = d_B[B_read_row * B_cols + B_read_col];
+        B_tile[B_smem_row][B_initial_smem_col + j * tile_width] = d_B[B_read_row * B_cols + B_read_col];
       }
       else
       {
-        B_tile[threadIdx.y][threadIdx.x] = 0;
+        B_tile[B_smem_row][B_initial_smem_col + j * tile_width] = 0;
       }
-
-      __syncthreads();
-
-      for (int k = 0; k < tile_width; k++)
-      {
-        sum[j] += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
-      }
-
-      __syncthreads();
     }
+
+    __syncthreads();
+
+    for (int k = 0; k < tile_width; k++)
+    {
+      float A_val = A_tile[threadIdx.y][k];
+
+      for (int j = 0; j < coarse_factor; j++)
+      {
+        float B_val = B_tile[k][threadIdx.x * coarse_factor + j];
+        sums[j] += A_val * B_val;
+      }
+    }
+
+    __syncthreads();
   }
 
   for (int j = 0; j < coarse_factor; j++)
   {
-    int write_row = row;
-    int write_col = col + j * tile_width;
+    int C_write_col = C_initial_write_col + j;
 
-    if (write_row < A_rows && write_col < B_cols)
+    if (C_write_row < A_rows && C_write_col < B_cols)
     {
-      d_C[write_row * B_cols + write_col] = sum[j];
+      d_C[C_write_row * B_cols + C_write_col] = sums[j];
     }
   }
 }

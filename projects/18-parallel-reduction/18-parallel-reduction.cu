@@ -12,7 +12,7 @@
     }                                                                                            \
   }
 
-constexpr int N = 100 * 1000 * 1000;
+constexpr int N = 1024 * 1024;
 
 constexpr int threads_per_block = 256;
 constexpr int coarse_factor = 16;
