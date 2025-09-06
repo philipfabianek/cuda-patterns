@@ -4,6 +4,14 @@ project(CudaPatterns LANGUAGES CXX CUDA)
 
 find_package(CUDA REQUIRED)
 
+include(CheckLanguage)
+check_language(CUDA)
+
+set(CMAKE_CXX_STANDARD 20)
+
+# Adjust this if necessary
+set(CUDA_COMPUTE_CAPABILITY 86)
+
 # --- Shared Libraries ---
 
 # My own small library for graph construction, representation conversion and verification
